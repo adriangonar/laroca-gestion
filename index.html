@@ -2368,7 +2368,7 @@ function renderSalaGraficas() {
 // ============================================================
 // PASSWORD CHANGE
 // ============================================================
-function guardarNuevaPass() {
+async function guardarNuevaPass() {
   const p1 = document.getElementById('new-pass-1').value.trim();
   const p2 = document.getElementById('new-pass-2').value.trim();
   const errEl = document.getElementById('pass-error');
