@@ -269,7 +269,7 @@
   }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 <script>
@@ -778,7 +778,7 @@ function doLogin() {
 // ============================================================
 const SUPA_URL = 'https://mzxyjkhedtrzmfqsmhma.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16eHlqa2hlZHRyem1mcXNtaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3ODczNjMsImV4cCI6MjA4ODM2MzM2M30.uPOqFFsrPHqxEdOBCbL5_r8DJJXl1O2Oa18KrllHRzU';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+let sb = null; // initialized after DOM ready
 
 // ============================================================
 // DB HELPERS — read/write Supabase
@@ -1084,8 +1084,17 @@ function renderQuickAccess() {
     </button>`).join('');
 }
 
-async function doLoginFull(userIdOrEmail) {
-  // Load all data from Supabase first
+async function doLoginFull() {
+  // Init Supabase client if not yet done
+  if (!sb) {
+    if (typeof supabase === 'undefined' || !supabase.createClient) {
+      alert('Error: No se pudo cargar la librería de base de datos. Comprueba tu conexión a internet.');
+      return;
+    }
+    sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  }
+
+  // Load all data from Supabase
   await dbLoadAll();
 
   // Seed on first ever run (empty DB)
@@ -1130,7 +1139,12 @@ function doLogout() {
 }
 
 // Render quick access on page load
-window.addEventListener('DOMContentLoaded', function() { renderQuickAccess(); });
+window.addEventListener('DOMContentLoaded', function() {
+  if (typeof supabase !== 'undefined' && supabase.createClient) {
+    sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  }
+  renderQuickAccess();
+});
 
 // ============================================================
 // INIT
