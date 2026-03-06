@@ -492,7 +492,10 @@ function doLogin() {
 
       <!-- CARTAS -->
       <div class="page" id="page-cartas">
-        <div class="page-header"><h2>Cartas / Actividad</h2><p>Personas asignadas por líder con estado de seguimiento</p></div>
+        <div class="page-header">
+          <h2>✉️ Seguimiento de Personas</h2>
+          <p>Estado de seguimiento por líder — se actualiza automáticamente al registrar personas</p>
+        </div>
         <div class="filters-bar">
           <select class="filter-input" id="filter-cartas-lider" onchange="renderCartas()">
             <option value="">Todos los líderes</option>
@@ -506,12 +509,8 @@ function doLogin() {
         </div>
         <div class="stats-grid" id="cartas-stats"></div>
         <div class="card">
-          <div class="card-header"><span class="card-title" id="cartas-count">Personas</span></div>
+          <div class="card-header"><span class="card-title" id="cartas-count">Seguimientos</span></div>
           <div class="card-body"><div id="table-cartas"></div></div>
-        </div>
-        <div class="card" style="margin-top:20px">
-          <div class="card-header"><span class="card-title">📬 Registro de actividad</span></div>
-          <div class="card-body"><div id="table-cartas-evangelismo"></div></div>
         </div>
       </div>
 
@@ -745,31 +744,6 @@ function doLogin() {
   </div>
 </div>
 
-<!-- MODAL Carta -->
-<div class="modal-overlay" id="modal-carta">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 class="modal-title">Nueva entrada evangelística</h3>
-      <button class="modal-close" onclick="closeModal('modal-carta')">✕</button>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Líder</label><select id="carta-lider"></select></div>
-      <div class="form-group"><label>Tipo de grupo</label>
-        <select id="carta-tipo">
-          <option value="mujeres">Mujeres</option><option value="jovenes-chicas">Jóvenes Chicas</option><option value="hombres">Hombres</option><option value="jovenes-chicos">Jóvenes Chicos</option><option value="ninos">Niñ@s</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Número de cartas</label><input type="number" id="carta-num" placeholder="0"></div>
-      <div class="form-group"><label>Fecha</label><input type="date" id="carta-fecha"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-carta')">Cancelar</button>
-      <button class="btn btn-gold" onclick="guardarCarta()">Guardar</button>
-    </div>
-  </div>
-</div>
 
 <script>
 // ============================================================
@@ -866,7 +840,12 @@ async function dbLoadAll() {
 
     // CARTAS
     if (cRes.data && cRes.data.length) {
-      CARTAS = cRes.data.map(r=>({id:r.id,lider:r.lider,tipo:r.tipo,num:r.num,fecha:r.fecha}));
+      CARTAS = cRes.data.map(r=>({
+        id:r.id, lider:r.lider, tipo:r.tipo, num:r.num||1, fecha:r.fecha,
+        personaId:r.persona_id||null, personaNombre:r.persona_nombre||'',
+        estado:r.estado||'Pendiente', tipoCarta:r.tipo_carta||'evangelismo',
+        _fromDB:true
+      }));
       nextCartaId = Math.max(...CARTAS.map(c=>c.id)) + 1;
     }
 
@@ -939,7 +918,11 @@ async function dbUpdatePersonaField(id, fields) {
 
 // --- CARTAS ---
 async function dbSaveCarta(c) {
-  const row = {lider:c.lider, tipo:c.tipo, num:c.num, fecha:c.fecha};
+  const row = {
+    lider:c.lider, tipo:c.tipo||'seguimiento', num:c.num||1, fecha:c.fecha,
+    persona_id:c.personaId||null, persona_nombre:c.personaNombre||'',
+    estado:c.estado||'Pendiente', tipo_carta:c.tipoCarta||'persona'
+  };
   if (c._fromDB) {
     await sb.from('cartas').update(row).eq('id', c.id);
   } else {
@@ -1107,16 +1090,8 @@ let PERSONAS = [
 ];
 
 let HISTORIALES = {};
-let CARTAS = [
-  {id:1,lider:'Ashley',tipo:'mujeres',num:8,fecha:'2026-01-15'},
-  {id:2,lider:'Patricia',tipo:'jovenes-chicas',num:5,fecha:'2026-01-15'},
-  {id:3,lider:'Tae Jun',tipo:'hombres',num:6,fecha:'2026-02-15'},
-  {id:4,lider:'David',tipo:'hombres',num:4,fecha:'2026-02-15'},
-  {id:5,lider:'Michelle',tipo:'jovenes-chicas',num:7,fecha:'2026-02-22'},
-  {id:6,lider:'Esteban',tipo:'jovenes-chicos',num:3,fecha:'2026-02-22'},
-  {id:7,lider:'Juani',tipo:'ninos',num:5,fecha:'2026-03-01'},
-  {id:8,lider:'Samuel',tipo:'hombres',num:9,fecha:'2026-02-01'},
-];
+let CARTAS = []; // loaded from Supabase — {id, lider, tipo, num, fecha, personaId, personaNombre, estado, tipoCarta}
+
 let NOTIFS_POR_LIDER = {}; // { 'Tae Jun': [{titulo, body, tiempo, nueva, id}] }
 let currentUser = null;
 let nextPersonaId = 26;
@@ -1207,7 +1182,7 @@ function initApp() {
   show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor');
   // Cartas only for admin and pastor (not cosecha)
   const cartasItem = document.getElementById('nav-item-cartas');
-  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor') ? 'block' : 'none';
+  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha') ? 'block' : 'none';
   show('nav-lider-asig',      rol==='lider');
   show('nav-supervisor-asig', rol==='supervisor');
   show('nav-pastores',        rol==='pastor'||rol==='admin');
@@ -1317,7 +1292,7 @@ function applyNavForRole(rol) {
   show('nav-personas',        rol==='cosecha'||rol==='admin');
   show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor');
   const cartasItem = document.getElementById('nav-item-cartas');
-  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor') ? 'block' : 'none';
+  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha') ? 'block' : 'none';
   show('nav-lider-asig',      rol==='lider');
   show('nav-supervisor-asig', rol==='supervisor');
   show('nav-pastores',        rol==='pastor'||rol==='admin');
@@ -1376,7 +1351,7 @@ function renderDashboardForRole(rol) {
 
 function populateLiderSelects() {
   // Líderes
-  ['reg-lider','carta-lider','filter-lider-p'].forEach(id=>{
+  ['reg-lider','filter-lider-p'].forEach(id=>{
     const sel = document.getElementById(id);
     if (!sel) return;
     const isFilter = id==='filter-lider-p';
@@ -1740,6 +1715,19 @@ async function guardarPersona() {
   await dbSavePersona(nueva);
   PERSONAS.push(nueva);
   HISTORIAL = HISTORIALES[nueva.id] = [];
+
+  // Crear carta/seguimiento automático para el líder
+  const carta = {
+    id: nextCartaId++,
+    lider, tipo: 'seguimiento', num: 1,
+    fecha: nueva.fecha,
+    personaId: nueva.id,
+    personaNombre: `${nueva.nombre} ${nueva.apellidos}`.trim(),
+    estado: 'Pendiente',
+    tipoCarta: 'persona'
+  };
+  await dbSaveCarta(carta);
+  CARTAS.push(carta);
   if (!NOTIFS_POR_LIDER[lider]) NOTIFS_POR_LIDER[lider] = [];
   NOTIFS_POR_LIDER[lider].unshift({
     id: Date.now(), titulo: '🔔 Nueva persona asignada',
@@ -1757,90 +1745,84 @@ async function guardarPersona() {
 // CARTAS
 // ============================================================
 function renderCartas() {
-  // Populate lider filter if empty
   const filterLider = document.getElementById('filter-cartas-lider');
   if (filterLider && filterLider.options.length <= 1) {
     LIDERES.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; filterLider.appendChild(o); });
   }
-
-  const liderFil = document.getElementById('filter-cartas-lider')?.value || '';
+  const liderFil  = document.getElementById('filter-cartas-lider')?.value || '';
   const estadoFil = document.getElementById('filter-cartas-estado')?.value || '';
 
-  // --- Stats (all personas) ---
-  const total = PERSONAS.length;
-  const pendiente = PERSONAS.filter(p=>(p.asisteCelula||'Pendiente')==='Pendiente').length;
-  const si = PERSONAS.filter(p=>p.asisteCelula==='Sí').length;
-  const no = PERSONAS.filter(p=>p.asisteCelula==='No').length;
+  // Solo cartas de tipo persona (seguimiento automático)
+  const seguimientos = CARTAS.filter(c => c.tipoCarta === 'persona' || !c.tipoCarta);
+
+  const total     = seguimientos.length;
+  const pendiente = seguimientos.filter(c => c.estado === 'Pendiente').length;
+  const si        = seguimientos.filter(c => c.estado === 'Sí').length;
+  const no        = seguimientos.filter(c => c.estado === 'No').length;
+
   const statsEl = document.getElementById('cartas-stats');
   if (statsEl) statsEl.innerHTML = `
-    <div class="stat-card gold"><div class="sc-icon">👥</div><div class="sc-val">${total}</div><div class="sc-label">Total personas</div></div>
+    <div class="stat-card gold"><div class="sc-icon">👥</div><div class="sc-val">${total}</div><div class="sc-label">Total seguimientos</div></div>
     <div class="stat-card orange"><div class="sc-icon">⏳</div><div class="sc-val">${pendiente}</div><div class="sc-label">Pendiente</div></div>
     <div class="stat-card green"><div class="sc-icon">✅</div><div class="sc-val">${si}</div><div class="sc-label">Sí asisten</div></div>
     <div class="stat-card red"><div class="sc-icon">❌</div><div class="sc-val">${no}</div><div class="sc-label">No asisten</div></div>`;
 
-  // --- Persons table filtered ---
-  let lista = PERSONAS.filter(p=>{
-    const matchL = !liderFil || p.lider === liderFil;
-    const matchE = !estadoFil || (p.asisteCelula||'Pendiente') === estadoFil;
+  const lista = seguimientos.filter(c => {
+    const matchL = !liderFil  || c.lider  === liderFil;
+    const matchE = !estadoFil || c.estado === estadoFil;
     return matchL && matchE;
-  });
+  }).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
 
   const countEl = document.getElementById('cartas-count');
-  if (countEl) countEl.textContent = `${lista.length} persona${lista.length!==1?'s':''} ${liderFil?'— '+liderFil:''}`;
+  if (countEl) countEl.textContent = `${lista.length} seguimiento${lista.length!==1?'s':''} ${liderFil?'— '+liderFil:''}`;
+
+  const rol = currentUser?.rol;
+  const puedeEditar = rol === 'admin' || rol === 'cosecha' || rol === 'pastor';
 
   const tableEl = document.getElementById('table-cartas');
-  if (tableEl) {
-    if (!lista.length) {
-      tableEl.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>No hay personas con ese filtro</p></div>';
-    } else {
-      tableEl.innerHTML = `<table><thead><tr>
-        <th>Nombre</th><th>Apellidos</th><th>Teléfono</th><th>Líder</th><th>Decisión</th><th>Asiste a Célula</th><th></th>
-      </tr></thead><tbody>
-      ${lista.map(p=>`<tr>
-        <td><strong>${p.nombre}</strong></td>
-        <td>${p.apellidos||'—'}</td>
-        <td>${p.telefono}</td>
-        <td>${p.lider}</td>
-        <td>${badgeDecision(p.decision)}</td>
-        <td>${badgeAsiste(p.asisteCelula||'Pendiente')}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="openPersonaModal(${p.id})">Ver</button></td>
-      </tr>`).join('')}
-      </tbody></table>`;
-    }
+  if (!tableEl) return;
+  if (!lista.length) {
+    tableEl.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>No hay seguimientos con ese filtro</p></div>';
+    return;
   }
-
-  // --- Evangelism activity table (no delete) ---
-  const evanEl = document.getElementById('table-cartas-evangelismo');
-  if (evanEl) {
-    if (!CARTAS.length) {
-      evanEl.innerHTML = '<div class="empty-state"><div class="es-icon">✉️</div><p>Sin registros evangelísticos aún</p></div>';
-    } else {
-      evanEl.innerHTML = `<table><thead><tr><th>Fecha</th><th>Líder</th><th>Tipo de grupo</th><th>Nº Cartas</th></tr></thead><tbody>
-      ${CARTAS.map(c=>`<tr>
-        <td>${formatDate(c.fecha)}</td>
-        <td><strong>${c.lider}</strong></td>
-        <td style="text-transform:capitalize">${c.tipo}</td>
-        <td><strong>${c.num}</strong></td>
-      </tr>`).join('')}
-      </tbody></table>`;
-    }
-  }
+  tableEl.innerHTML = `<table><thead><tr>
+    <th>Fecha</th><th>Persona</th><th>Líder</th><th>Estado seguimiento</th>${puedeEditar?'<th>Actualizar</th>':''}
+  </tr></thead><tbody>
+  ${lista.map(c=>`<tr>
+    <td>${formatDate(c.fecha)}</td>
+    <td><strong>${c.personaNombre||'—'}</strong></td>
+    <td>${c.lider}</td>
+    <td>${badgeAsiste(c.estado||'Pendiente')}</td>
+    ${puedeEditar ? `<td>
+      <select class="filter-input" style="font-size:11px;padding:4px 6px;width:auto"
+        onchange="updateCartaEstado(${c.id}, this.value)">
+        <option value="Pendiente" ${c.estado==='Pendiente'?'selected':''}>⏳ Pendiente</option>
+        <option value="Sí"        ${c.estado==='Sí'       ?'selected':''}>✅ Sí asiste</option>
+        <option value="No"        ${c.estado==='No'       ?'selected':''}>❌ No asiste</option>
+      </select>
+    </td>` : ''}
+  </tr>`).join('')}
+  </tbody></table>`;
 }
 
-function openCartaModal() {
-  document.getElementById('carta-fecha').value = new Date().toISOString().split('T')[0];
-  document.getElementById('modal-carta').classList.add('open');
-}
-async function guardarCarta() {
-  const num = parseInt(document.getElementById('carta-num').value)||0;
-  if (!num) { alert('Ingresa el número de cartas'); return; }
-  const carta = {id:nextCartaId++, lider:document.getElementById('carta-lider').value, tipo:document.getElementById('carta-tipo').value, num, fecha:document.getElementById('carta-fecha').value};
-  await dbSaveCarta(carta);
-  CARTAS.push(carta);
-  closeModal('modal-carta');
+async function updateCartaEstado(cartaId, nuevoEstado) {
+  const c = CARTAS.find(x => x.id === cartaId);
+  if (!c) return;
+  c.estado = nuevoEstado;
+  await sb.from('cartas').update({estado: nuevoEstado}).eq('id', cartaId);
+  // Sync persona asisteCelula too
+  if (c.personaId) {
+    const p = PERSONAS.find(x => x.id === c.personaId);
+    if (p) {
+      p.asisteCelula = nuevoEstado;
+      await dbUpdatePersonaField(c.personaId, {asisteCelula: nuevoEstado});
+    }
+  }
+  showToast(`✅ Seguimiento actualizado: ${nuevoEstado}`, 'ok');
   renderCartas();
-  showToast('✅ Entrada guardada', 'ok');
 }
+
+
 
 // ============================================================
 // MOTIVOS / DECISIONES (dominical)
