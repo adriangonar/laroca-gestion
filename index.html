@@ -371,6 +371,8 @@ function doLogin() {
       <div class="nav-section" id="nav-lider-asig" style="display:none">
         <div class="nav-label">Mi Seguimiento</div>
         <div class="nav-item" onclick="showPage('mis-personas')" data-page="mis-personas"><span class="ni">📋</span> Mis Personas</div>
+        <div class="nav-item" onclick="showPage('trimestral')" data-page="trimestral"><span class="ni">📅</span> Mi Informe Trimestral</div>
+        <div class="nav-item" onclick="showPage('sala-salvacion')" data-page="sala-salvacion"><span class="ni">🕊️</span> Sala de Salvación</div>
       </div>
 
       <!-- SEGUIMIENTO SUPERVISOR: supervisor -->
@@ -722,9 +724,13 @@ function doLogin() {
     <div class="modal-header"><h3 class="modal-title">🔑 Cambiar contraseña</h3></div>
     <div style="padding:20px">
       <p style="font-size:13px;color:var(--text-light);margin-bottom:16px" id="cambiar-pass-msg">Es tu primer acceso. Por favor establece una nueva contraseña.</p>
-      <div class="form-group"><label>Nueva contraseña</label><input type="password" id="new-pass-1" class="filter-input" style="width:100%" placeholder="Nueva contraseña"></div>
+      <div class="form-group">
+        <label>Nueva contraseña</label>
+        <input type="password" id="new-pass-1" class="filter-input" style="width:100%" placeholder="Mínimo 8 caracteres">
+        <small style="color:var(--text-light);font-size:11px;margin-top:4px;display:block">Mínimo 8 caracteres, una mayúscula y una minúscula</small>
+      </div>
       <div class="form-group"><label>Confirmar contraseña</label><input type="password" id="new-pass-2" class="filter-input" style="width:100%" placeholder="Repite la contraseña"></div>
-      <p id="pass-error" style="color:var(--red-light);font-size:12px;display:none;margin-top:8px">Las contraseñas no coinciden</p>
+      <p id="pass-error" style="color:var(--red-light);font-size:12px;display:none;margin-top:8px"></p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-gold" onclick="guardarNuevaPass()">Guardar contraseña</button>
@@ -1242,7 +1248,7 @@ function showPageForRole(name, rol) {
   // Block map for preview role
   const blocked = {
     cosecha:    ['global','lideres-stat','trimestral','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
-    lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
+    lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
     supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
     pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
   };
@@ -1407,26 +1413,30 @@ async function addOpcion(tipo) {
   const input = document.getElementById(inputId);
   const val = input.value.trim();
   if (!val) { input.focus(); return; }
-  if (tipo==='decisiones') { if(!DECISIONES.includes(val.toUpperCase())){DECISIONES.push(val.toUpperCase());} }
-  else if (tipo==='motivos') { if(!MOTIVOS.includes(val.toUpperCase())){MOTIVOS.push(val.toUpperCase());} }
-  else if (tipo==='lideres') { if(!LIDERES.includes(val)){LIDERES.push(val);} }
-  await dbSyncOpciones(tipo==='decisiones'?'decision':tipo==='motivos'?'motivo':'lider',
-    tipo==='decisiones'?DECISIONES:tipo==='motivos'?MOTIVOS:LIDERES);
-  input.value='';
+  const dbTipo = tipo==='decisiones'?'decision':tipo==='motivos'?'motivo':'lider';
+  const finalVal = tipo==='lideres' ? val : val.toUpperCase();
+  let arr = tipo==='decisiones'?DECISIONES:tipo==='motivos'?MOTIVOS:LIDERES;
+  if (arr.includes(finalVal)) { showToast('Ya existe esa opción', 'error'); return; }
+  arr.push(finalVal);
+  // Insert only the new item — much faster than resyncing all
+  await sb.from('opciones').insert({ tipo: dbTipo, valor: finalVal });
+  input.value = '';
   populateLiderSelects();
   renderAjustes();
+  showToast(`✅ "${finalVal}" añadido`, 'ok');
 }
 
 async function removeOpcion(tipo, idx) {
-  const nombre = tipo==='decisiones'?DECISIONES[idx]:tipo==='motivos'?MOTIVOS[idx]:LIDERES[idx];
-  if (!confirm(`¿Eliminar la opción "${nombre}"?`)) return;
-  if (tipo==='decisiones') DECISIONES.splice(idx,1);
-  else if (tipo==='motivos') MOTIVOS.splice(idx,1);
-  else if (tipo==='lideres') LIDERES.splice(idx,1);
-  await dbSyncOpciones(tipo==='decisiones'?'decision':tipo==='motivos'?'motivo':'lider',
-    tipo==='decisiones'?DECISIONES:tipo==='motivos'?MOTIVOS:LIDERES);
+  const arr = tipo==='decisiones'?DECISIONES:tipo==='motivos'?MOTIVOS:LIDERES;
+  const nombre = arr[idx];
+  if (!confirm(`¿Eliminar "${nombre}"?`)) return;
+  const dbTipo = tipo==='decisiones'?'decision':tipo==='motivos'?'motivo':'lider';
+  // Delete by tipo+valor — faster than resync
+  await sb.from('opciones').delete().eq('tipo', dbTipo).eq('valor', nombre);
+  arr.splice(idx, 1);
   populateLiderSelects();
   renderAjustes();
+  showToast(`🗑 "${nombre}" eliminado`, 'ok');
 }
 
 // ============================================================
@@ -1443,7 +1453,7 @@ function showPage(name) {
   if (rol !== 'admin') {
     const blocked = {
       cosecha:    ['global','lideres-stat','trimestral','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
-      lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
+      lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
       supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
       pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
     };
@@ -2166,11 +2176,16 @@ function switchSalaTab(tab) {
 function renderSalaSalvacion() {
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const year = new Date().getFullYear();
+  const esLider = currentUser.rol === 'lider';
+  const miLider = esLider ? currentUser.liderId : null;
 
-  // Group personas by month
+  // Filter personas — by lider if rol is lider
+  const personasFiltradas = esLider ? PERSONAS.filter(p => p.lider === miLider) : PERSONAS;
+
+  // Group by month
   const byMonth = Array.from({length:12}, (_,i) => {
     const mes = i + 1;
-    const lista = PERSONAS.filter(p => {
+    const lista = personasFiltradas.filter(p => {
       const d = new Date(p.fecha + 'T00:00:00');
       return d.getFullYear() === year && d.getMonth() + 1 === mes;
     });
@@ -2189,7 +2204,13 @@ function renderSalaSalvacion() {
   const totalRenovacion= byMonth.reduce((s,m)=>s+m.renovacion, 0);
   const totalVisita    = byMonth.reduce((s,m)=>s+m.visita, 0);
   const totalPlantadas = byMonth.reduce((s,m)=>s+m.plantadas, 0);
-  const totalPersonas  = PERSONAS.length;
+  const totalPersonas  = personasFiltradas.length;
+
+  // Update subtitle if lider
+  const subtitleEl = document.querySelector('#page-sala-salvacion .page-header p');
+  if (subtitleEl) subtitleEl.textContent = esLider
+    ? `Mis personas — ${miLider} — ${year}`
+    : `Resumen mensual de decisiones y personas plantadas`;
 
   document.getElementById('sala-stats').innerHTML = `
     <div class="stat-card gold">  <div class="sc-icon">👥</div><div class="sc-val">${totalPersonas}</div> <div class="sc-label">Total ${year}</div></div>
@@ -2289,16 +2310,21 @@ async function guardarNuevaPass() {
   const p1 = document.getElementById('new-pass-1').value.trim();
   const p2 = document.getElementById('new-pass-2').value.trim();
   const errEl = document.getElementById('pass-error');
+  errEl.style.display = 'none';
   if (!p1) { errEl.textContent='Escribe una contraseña'; errEl.style.display='block'; return; }
+  if (p1.length < 8) { errEl.textContent='Mínimo 8 caracteres'; errEl.style.display='block'; return; }
+  if (!/[A-Z]/.test(p1)) { errEl.textContent='Debe tener al menos una mayúscula'; errEl.style.display='block'; return; }
+  if (!/[a-z]/.test(p1)) { errEl.textContent='Debe tener al menos una minúscula'; errEl.style.display='block'; return; }
   if (p1 !== p2) { errEl.textContent='Las contraseñas no coinciden'; errEl.style.display='block'; return; }
-  errEl.style.display='none';
+  // Update in Supabase directly
+  await sb.from('usuarios').update({ pass: p1, must_change_pass: false }).eq('id', currentUser.id);
   currentUser.pass = p1;
   currentUser.mustChangePass = false;
-  await dbSaveUsuario(currentUser);
   document.getElementById('modal-cambiar-pass').classList.remove('open');
   renderQuickAccess();
   renderDashboard();
   showPage('dashboard');
+  showToast('✅ Contraseña guardada correctamente', 'ok');
 }
 
 // ============================================================
@@ -2419,11 +2445,7 @@ async function deleteUser(id) {
 function renderSupervisoresCfg() {
   const liderOptions = LIDERES.map(l=>`<option value="${l}">${l}</option>`).join('');
 
-  // Cards for each supervisor
   const cards = SUPERVISORES.map(s => {
-    const supEmail = s.userId ? (USERS.find(u=>u.id===s.userId)?.email||'') : '(sin cuenta)';
-
-    // Groups section
     const gruposHTML = s.grupos.map((g, gi) => {
       const liderRows = g.lideres.map(l=>`
         <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(201,168,76,0.06);border-radius:8px;margin-bottom:5px">
@@ -2434,11 +2456,13 @@ function renderSupervisoresCfg() {
         <div style="background:rgba(0,0,0,0.02);border:1px solid rgba(201,168,76,0.12);border-radius:10px;padding:12px;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <strong style="font-size:13px;flex:1">📋 ${g.nombre}</strong>
-            <button class="btn btn-ghost btn-sm" style="color:var(--red-light);font-size:11px" onclick="deleteGrupo(${s.id},${gi})">🗑 Quitar grupo</button>
+            ${s.grupos.length > 1 ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-light);font-size:11px" onclick="deleteGrupo(${s.id},${gi})">🗑 Quitar</button>` : ''}
           </div>
-          ${liderRows||'<p style="font-size:12px;opacity:0.5;margin:4px 0">Sin líderes</p>'}
+          ${liderRows||'<p style="font-size:12px;opacity:0.5;margin:4px 0">Sin líderes asignados</p>'}
           <div style="display:flex;gap:6px;margin-top:8px">
-            <select id="add-lid-${s.id}-${gi}" class="filter-input" style="flex:1"><option value="">— Añadir líder —</option>${liderOptions}</select>
+            <select id="add-lid-${s.id}-${gi}" class="filter-input" style="flex:1">
+              <option value="">— Añadir líder —</option>${liderOptions}
+            </select>
             <button class="btn btn-gold btn-sm" onclick="addLiderAGrupo(${s.id},${gi})">+ Líder</button>
           </div>
         </div>`;
@@ -2447,97 +2471,85 @@ function renderSupervisoresCfg() {
     return `<div class="card" style="margin-bottom:16px">
       <div class="card-header">
         <span class="card-title">🧭 ${s.nombre}</span>
-        <button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteSupervisor(${s.id})">🗑</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteSupervisor(${s.id})">🗑 Eliminar</button>
       </div>
       <div class="card-body">
-        <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">${supEmail}</p>
         ${gruposHTML}
-        <div style="display:flex;gap:6px;margin-top:10px;border-top:1px solid rgba(201,168,76,0.1);padding-top:10px">
-          <input type="text" id="new-grupo-${s.id}" class="filter-input" style="flex:1" placeholder="Nombre del nuevo grupo...">
-          <button class="btn btn-outline btn-sm" onclick="addGrupo(${s.id})">+ Añadir grupo</button>
-        </div>
       </div>
     </div>`;
   }).join('');
 
-  // List of supervisor names + add new
-  const nombresRows = SUPERVISORES_NOMBRES.map((n,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(201,168,76,0.06);border-radius:8px;margin-bottom:6px">
-      <span style="flex:1;font-size:13px">🧭 ${n}</span>
-      <button class="btn btn-ghost btn-sm" style="color:var(--red-light);padding:2px 8px" onclick="deleteSupNombre(${i})">✕</button>
-    </div>`).join('');
+  // Formulario nuevo grupo (oculto por defecto)
+  const supOptions = SUPERVISORES_NOMBRES.map(n=>`<option value="${n}">${n}</option>`).join('');
 
   document.getElementById('supervisores-cfg-content').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
-      <div>
-        <div class="page-header" style="padding:0;margin-bottom:16px"><h3 style="font-size:16px">Asignación de líderes</h3></div>
-        ${cards||'<p style="opacity:0.5;padding:20px">Sin supervisores. Añade uno desde la lista.</p>'}
-      </div>
-      <div>
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">📋 Lista de supervisores</span></div>
-          <div class="card-body">
-            ${nombresRows||'<p style="opacity:0.5;font-size:13px">Sin supervisores</p>'}
-            <div style="display:flex;gap:6px;margin-top:10px">
-              <input type="text" id="new-sup-nombre-input" class="filter-input" style="flex:1" placeholder="Nombre del supervisor...">
-              <button class="btn btn-gold btn-sm" onclick="addSupNombre()">+</button>
+    <div style="margin-bottom:20px">
+      <button class="btn btn-gold" onclick="toggleNuevoGrupoForm()">➕ Añadir grupo</button>
+    </div>
+
+    <div id="nuevo-grupo-form" style="display:none;margin-bottom:24px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Nuevo grupo</span></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Título del grupo</label>
+              <input type="text" id="nuevo-grupo-titulo" class="filter-input" style="width:100%" placeholder="Ej: Chicas, Niños, Jóvenes...">
+            </div>
+            <div class="form-group">
+              <label>Supervisor</label>
+              <select id="nuevo-grupo-supervisor" class="filter-input" style="width:100%">
+                <option value="">— Seleccionar supervisor —</option>
+                ${supOptions}
+              </select>
             </div>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">➕ Añadir supervisor</span></div>
-          <div class="card-body">
-            <p style="font-size:12px;color:var(--text-light);margin-bottom:10px">Elige un supervisor de la lista para crear su panel de asignación.</p>
-            <select id="new-sup-pick" class="filter-input" style="width:100%;margin-bottom:10px">
-              <option value="">— Seleccionar —</option>
-              ${SUPERVISORES_NOMBRES.filter(n=>!SUPERVISORES.find(s=>s.nombre===n)).map(n=>`<option value="${n}">${n}</option>`).join('')}
-            </select>
-            <button class="btn btn-gold" style="width:100%" onclick="addSupervisor()">Crear panel</button>
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <button class="btn btn-gold" onclick="crearNuevoGrupo()">Crear grupo</button>
+            <button class="btn btn-ghost" onclick="toggleNuevoGrupoForm()">Cancelar</button>
           </div>
         </div>
       </div>
-    </div>`;
+    </div>
+
+    ${cards||'<p style="opacity:0.5;padding:20px;text-align:center">Sin grupos configurados. Pulsa "Añadir grupo" para empezar.</p>'}`;
 }
 
-function addSupNombre() {
-  const val = document.getElementById('new-sup-nombre-input').value.trim();
-  if (!val) return;
-  if (SUPERVISORES_NOMBRES.includes(val)) { alert('Ya existe'); return; }
-  SUPERVISORES_NOMBRES.push(val);
-  renderSupervisoresCfg();
+function toggleNuevoGrupoForm() {
+  const f = document.getElementById('nuevo-grupo-form');
+  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 
-function deleteSupNombre(idx) {
-  const nombre = SUPERVISORES_NOMBRES[idx];
-  if (SUPERVISORES.find(s=>s.nombre===nombre)) { alert('Este supervisor tiene panel activo. Elimina primero el panel.'); return; }
-  SUPERVISORES_NOMBRES.splice(idx, 1);
-  renderSupervisoresCfg();
-}
+async function crearNuevoGrupo() {
+  const titulo = document.getElementById('nuevo-grupo-titulo').value.trim();
+  const supNombre = document.getElementById('nuevo-grupo-supervisor').value;
+  if (!titulo) { alert('Escribe un título para el grupo'); return; }
+  if (!supNombre) { alert('Selecciona un supervisor'); return; }
 
-async function addSupervisor() {
-  const nombre = document.getElementById('new-sup-pick').value;
-  if (!nombre) { alert('Selecciona un supervisor'); return; }
-  if (SUPERVISORES.find(s=>s.nombre===nombre)) { alert('Ya existe panel para este supervisor'); return; }
-  const s = { id:nextSupId++, userId:null, nombre, grupos:[{ nombre:'Grupo', lideres:[] }] };
-  await dbSaveSupervisor(s);
-  SUPERVISORES.push(s);
+  // Buscar si ya existe un panel para ese supervisor
+  let s = SUPERVISORES.find(x => x.nombre === supNombre);
+  if (s) {
+    // Añadir grupo al supervisor existente
+    s.grupos.push({ nombre: titulo, lideres: [] });
+    await dbSaveSupervisor(s);
+  } else {
+    // Crear nuevo supervisor con ese grupo
+    s = { id: nextSupId++, userId: null, nombre: supNombre, grupos: [{ nombre: titulo, lideres: [] }] };
+    await dbSaveSupervisor(s);
+    SUPERVISORES.push(s);
+  }
+
+  document.getElementById('nuevo-grupo-titulo').value = '';
+  document.getElementById('nuevo-grupo-supervisor').value = '';
+  document.getElementById('nuevo-grupo-form').style.display = 'none';
   renderSupervisoresCfg();
+  showToast(`✅ Grupo "${titulo}" creado para ${supNombre}`, 'ok');
 }
 
 async function deleteSupervisor(id) {
   if (!confirm('¿Eliminar configuración de supervisor?')) return;
   await dbDeleteSupervisor(id);
   SUPERVISORES = SUPERVISORES.filter(s=>s.id!==id);
-  renderSupervisoresCfg();
-}
-
-async function addGrupo(supId) {
-  const input = document.getElementById('new-grupo-'+supId);
-  const nombre = input?.value.trim() || 'Grupo';
-  const s = SUPERVISORES.find(x=>x.id===supId);
-  if (!s) return;
-  s.grupos.push({ nombre, lideres:[] });
-  await dbSaveSupervisor(s);
   renderSupervisoresCfg();
 }
 
