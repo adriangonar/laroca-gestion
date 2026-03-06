@@ -101,6 +101,7 @@
   .role-lider { background:rgba(45,106,79,0.2); color:#52B788; border:1px solid rgba(45,106,79,0.3); }
   .role-pastor { background:rgba(26,58,92,0.2); color:#74B5E8; border:1px solid rgba(26,58,92,0.3); }
   .role-admin { background:rgba(155,35,53,0.25); color:#E87A87; border:1px solid rgba(155,35,53,0.35); }
+  .role-analista { background:rgba(100,60,180,0.2); color:#A78BFA; border:1px solid rgba(100,60,180,0.3); }
   .header-user { color:rgba(255,255,255,0.7); font-size:13px; }
   .btn-logout { padding:6px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:rgba(255,255,255,0.6); font-size:12px; cursor:pointer; transition:all 0.2s; font-family:'DM Sans',sans-serif; }
   .btn-logout:hover { background:rgba(255,255,255,0.1); color:var(--white); }
@@ -684,6 +685,7 @@ function doLogin() {
           <button class="tab"        onclick="switchUsrTab('lider')"      id="usr-tab-lider">👤 Líderes</button>
           <button class="tab"        onclick="switchUsrTab('supervisor')" id="usr-tab-supervisor">🧭 Supervisores</button>
           <button class="tab"        onclick="switchUsrTab('pastor')"     id="usr-tab-pastor">🙏 Pastores</button>
+          <button class="tab"        onclick="switchUsrTab('analista')"   id="usr-tab-analista">🔍 Analistas</button>
         </div>
         <div id="usr-panel"></div>
       </div>
@@ -1108,8 +1110,8 @@ let nextCartaId = 9;
 function renderQuickAccess() {
   const list = document.getElementById('quick-access-list');
   if (!list) return;
-  const rolLabels = {admin:'Administrador',cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor'};
-  const rolIcons  = {admin:'🛡️',cosecha:'🌾',lider:'👤',supervisor:'🧭',pastor:'🙏'};
+  const rolLabels = {admin:'Administrador',cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor',analista:'Analista'};
+  const rolIcons  = {admin:'🛡️',cosecha:'🌾',lider:'👤',supervisor:'🧭',pastor:'🙏',analista:'🔍'};
   // Only show users who have already logged in at least once (mustChangePass === false)
   const activos = USERS.filter(u => !u.mustChangePass);
   if (!activos.length) { list.innerHTML='<p style="opacity:0.5;font-size:12px;text-align:center">Sin accesos registrados aún</p>'; return; }
@@ -1176,7 +1178,7 @@ window.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 function initApp() {
   const rol = currentUser.rol;
-  const rolLabels = {admin:'Administrador',cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor_tab:'Pastor',pastor:'Pastor'};
+  const rolLabels = {admin:'Administrador',cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor_tab:'Pastor',pastor:'Pastor',analista:'Analista'};
   document.getElementById('header-user').textContent = currentUser.nombre;
   const rb = document.getElementById('role-badge');
   rb.textContent = rolLabels[rol] || rol;
@@ -1184,14 +1186,15 @@ function initApp() {
 
   // Show/hide nav sections
   const show = (id, cond) => { const el=document.getElementById(id); if(el) el.style.display=cond?'block':'none'; };
-  show('nav-personas',        rol==='cosecha'||rol==='admin');
-  show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor');
-  // Cartas only for admin and pastor (not cosecha)
+  const isAnalista = rol === 'analista';
+  show('nav-personas',        rol==='cosecha'||rol==='admin'||isAnalista);
+  show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor'||isAnalista);
+  // Cartas only for admin/pastor/cosecha/analista
   const cartasItem = document.getElementById('nav-item-cartas');
-  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha') ? 'block' : 'none';
+  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha'||isAnalista) ? 'block' : 'none';
   show('nav-lider-asig',      rol==='lider');
   show('nav-supervisor-asig', rol==='supervisor');
-  show('nav-pastores',        rol==='pastor'||rol==='admin');
+  show('nav-pastores',        rol==='pastor'||rol==='admin'||isAnalista);
   show('nav-ajustes',         rol==='admin');
 
   // Preview mode selector — only visible for admin
@@ -1229,7 +1232,7 @@ let _previewSupervisorId = null; // which supervisor the admin is previewing
 
 function setPreviewMode(rol) {
   const banner = document.getElementById('preview-banner');
-  const labels = {cosecha:'🌾 Cosecha', lider:'👤 Líder', supervisor:'🧭 Supervisor', pastor:'🙏 Pastor'};
+  const labels = {cosecha:'🌾 Cosecha', lider:'👤 Líder', supervisor:'🧭 Supervisor', pastor:'🙏 Pastor', analista:'🔍 Analista'};
 
   if (!rol) {
     // Restore real admin view
@@ -1295,16 +1298,17 @@ function cancelPickSupervisor() {
 
 function applyNavForRole(rol) {
   const show = (id, cond) => { const el=document.getElementById(id); if(el) el.style.display=cond?'block':'none'; };
-  show('nav-personas',        rol==='cosecha'||rol==='admin');
-  show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor');
+  const isAnalista = rol === 'analista';
+  show('nav-personas',        rol==='cosecha'||rol==='admin'||isAnalista);
+  show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor'||isAnalista);
   const cartasItem = document.getElementById('nav-item-cartas');
-  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha') ? 'block' : 'none';
+  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha'||isAnalista) ? 'block' : 'none';
   show('nav-lider-asig',      rol==='lider');
   show('nav-supervisor-asig', rol==='supervisor');
-  show('nav-pastores',        rol==='pastor'||rol==='admin');
+  show('nav-pastores',        rol==='pastor'||rol==='admin'||isAnalista);
   show('nav-ajustes',         rol==='admin');
   const rb = document.getElementById('role-badge');
-  const rolLabels = {admin:'Administrador',cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor'};
+  const rolLabels = {admin:'Administrador',cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor',analista:'Analista'};
   rb.textContent = rolLabels[rol] || rol;
   rb.className = 'role-badge role-'+rol;
 }
@@ -1316,6 +1320,7 @@ function showPageForRole(name, rol) {
     lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','historial'],
     supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
     pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
+      analista:   ['nuevo-registro','ajustes','usuarios','supervisores-cfg','mis-personas','mis-lideres','mi-informe-sup'],
   };
   if (blocked[rol] && blocked[rol].includes(name)) {
     // Show a friendly blocked message in main area
@@ -1537,7 +1542,7 @@ async function renderHistorial() {
     return;
   }
 
-  const rolColors = {admin:'#C9A84C',cosecha:'#27AE60',lider:'#2980B9',supervisor:'#8E44AD',pastor:'#2C3E50'};
+  const rolColors = {admin:'#C9A84C',cosecha:'#27AE60',lider:'#2980B9',supervisor:'#8E44AD',pastor:'#2C3E50',analista:'#A78BFA'};
   tableEl.innerHTML = `<table><thead><tr>
     <th>Fecha y hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th><th>Persona</th>
   </tr></thead><tbody>
@@ -1574,6 +1579,7 @@ function showPage(name) {
       lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','historial'],
       supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
       pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
+      analista:   ['nuevo-registro','ajustes','usuarios','supervisores-cfg','mis-personas','mis-lideres','mi-informe-sup'],
     };
     if (blocked[rol] && blocked[rol].includes(name)) return;
   }
@@ -1613,7 +1619,36 @@ function renderDashboard() {
   else if (rol==='cosecha') renderDashCosecha();
   else if (rol==='lider') renderDashLider();
   else if (rol==='supervisor') renderDashSupervisor();
+  else if (rol==='analista') renderDashAnalista();
   else renderDashPastor(); // pastor
+}
+
+function renderDashAnalista() {
+  const total = PERSONAS.length;
+  const semana = PERSONAS.filter(p=>isThisWeek(p.fecha)).length;
+  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
+  const seguimiento = PERSONAS.filter(p=>p.estado==='En seguimiento').length;
+  const consolidado = PERSONAS.filter(p=>p.estado==='Consolidado').length;
+  const pendienteAsiste = PERSONAS.filter(p=>(p.asisteCelula||'Pendiente')==='Pendiente').length;
+  const si = PERSONAS.filter(p=>p.asisteCelula==='Sí').length;
+  const no = PERSONAS.filter(p=>p.asisteCelula==='No').length;
+  document.getElementById('dash-title').textContent = '🔍 Panel Analista';
+  document.getElementById('dash-subtitle').textContent = 'Vista completa del sistema — solo lectura';
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card gold"><div class="sc-icon">👥</div><div class="sc-val">${total}</div><div class="sc-label">Total registradas</div></div>
+    <div class="stat-card green"><div class="sc-icon">🆕</div><div class="sc-val">${semana}</div><div class="sc-label">Esta semana</div></div>
+    <div class="stat-card orange"><div class="sc-icon">⏳</div><div class="sc-val">${pendienteEstado}</div><div class="sc-label">Pendiente contacto</div></div>
+    <div class="stat-card blue"><div class="sc-icon">🔄</div><div class="sc-val">${seguimiento}</div><div class="sc-label">En seguimiento</div></div>
+    <div class="stat-card green"><div class="sc-icon">✅</div><div class="sc-val">${consolidado}</div><div class="sc-label">Consolidadas</div></div>
+    <div class="stat-card orange"><div class="sc-icon">🔔</div><div class="sc-val">${pendienteAsiste}</div><div class="sc-label">Sin respuesta célula</div></div>
+    <div class="stat-card green"><div class="sc-icon">🙌</div><div class="sc-val">${si}</div><div class="sc-label">Asisten a célula</div></div>
+    <div class="stat-card red"><div class="sc-icon">❌</div><div class="sc-val">${no}</div><div class="sc-label">No asisten</div></div>`;
+  const recent = [...PERSONAS].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
+  document.getElementById('dash-content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><span class="card-title">Registros recientes</span></div>
+      <div class="card-body">${buildPersonasTable(recent, false)}</div>
+    </div>`;
 }
 
 function renderDashAdmin() {
@@ -2168,9 +2203,9 @@ function openPersonaModal(id) {
   document.getElementById('modal-persona-title').textContent = `${p.nombre} ${p.apellidos}`;
   const rol = currentUser.rol;
   const isAdmin = rol === 'admin';
-  const canEdit = rol === 'cosecha' || rol === 'admin';
+  const canEdit = (rol === 'cosecha' || rol === 'admin');  // analista cannot edit
   const ac = p.asisteCelula || 'Pendiente';
-  // Pastor cannot change asiste celula at all
+  // Pastor and analista cannot change asiste celula at all
   // Cosecha can only change from Pendiente → Sí/No. Once confirmed, only admin.
   const canChangeAsiste = isAdmin || (rol === 'cosecha' && ac === 'Pendiente');
   const isLider = rol === 'lider' || isAdmin;
@@ -2480,7 +2515,7 @@ function genPass() {
 let _usrTab = 'cosecha';
 function switchUsrTab(rol) {
   _usrTab = rol;
-  ['cosecha','lider','supervisor','pastor'].forEach(r => {
+  ['cosecha','lider','supervisor','pastor','analista'].forEach(r => {
     document.getElementById('usr-tab-'+r).classList.toggle('active', r===rol);
   });
   renderUsuariosPanel();
@@ -2493,7 +2528,7 @@ function renderUsuarios() {
 function renderUsuariosPanel() {
   const rol = _usrTab;
   const lista = USERS.filter(u=>u.rol===rol);
-  const rolLabel = {cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor'}[rol]||rol;
+  const rolLabel = {cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor',analista:'Analista'}[rol]||rol;
   const at = String.fromCharCode(64);
 
   // Table columns depend on role
@@ -2518,16 +2553,16 @@ function renderUsuariosPanel() {
   let extraFields = '';
   if (rol === 'lider') {
     extraFields = `
-    <div class="form-group"><label>Líder asignado</label>
-      <select id="new-usr-lider" class="filter-input">
+    <div class="form-group" style="margin-bottom:0"><label>Líder asignado</label>
+      <select id="new-usr-lider" class="filter-input" style="width:100%">
         <option value="">— Seleccionar líder —</option>
         ${LIDERES.map(l=>`<option value="${l}">${l}</option>`).join('')}
       </select>
     </div>`;
   } else if (rol === 'supervisor') {
     extraFields = `
-    <div class="form-group"><label>Supervisor asignado</label>
-      <select id="new-usr-supervisor" class="filter-input">
+    <div class="form-group" style="margin-bottom:0"><label>Supervisor asignado</label>
+      <select id="new-usr-supervisor" class="filter-input" style="width:100%">
         <option value="">— Seleccionar supervisor —</option>
         ${SUPERVISORES_NOMBRES.map(n=>`<option value="${n}">${n}</option>`).join('')}
       </select>
@@ -2550,9 +2585,9 @@ function renderUsuariosPanel() {
     <div class="card">
       <div class="card-header"><span class="card-title">➕ Nuevo usuario — ${rolLabel}</span></div>
       <div class="card-body">
-        <div class="form-row">
-          <div class="form-group"><label>Nombre completo</label><input type="text" id="new-usr-nombre" class="filter-input" placeholder="Nombre completo"></div>
-          <div class="form-group"><label>Correo electrónico</label><input type="text" id="new-usr-email" class="filter-input" placeholder="correo${at}gmail.com" autocomplete="off" autocapitalize="off"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;max-width:900px;margin-bottom:14px">
+          <div class="form-group" style="margin-bottom:0"><label>Nombre completo</label><input type="text" id="new-usr-nombre" class="filter-input" style="width:100%" placeholder="Nombre completo"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Correo electrónico</label><input type="text" id="new-usr-email" class="filter-input" style="width:100%" placeholder="correo${at}gmail.com" autocomplete="off" autocapitalize="off"></div>
           ${extraFields}
         </div>
         <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">Se generará una contraseña provisional. El usuario deberá cambiarla en su primer acceso.</p>
