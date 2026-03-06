@@ -1745,7 +1745,8 @@ function renderCartas() {
 
   const rol = currentUser?.rol;
   const isAdmin = rol === 'admin';
-  const puedeEditar = isAdmin || rol === 'cosecha' || rol === 'pastor';
+  // Pastor cannot change estado. Cosecha only if Pendiente.
+  const puedeEditar = isAdmin || rol === 'cosecha';
 
   const tableEl = document.getElementById('table-cartas');
   if (!tableEl) return;
@@ -2065,7 +2066,8 @@ function openPersonaModal(id) {
   const isAdmin = rol === 'admin';
   const canEdit = rol === 'cosecha' || rol === 'admin';
   const ac = p.asisteCelula || 'Pendiente';
-  // Cosecha can only change from Pendiente. If already Sí/No, only admin can change.
+  // Pastor cannot change asiste celula at all
+  // Cosecha can only change from Pendiente → Sí/No. Once confirmed, only admin.
   const canChangeAsiste = isAdmin || (rol === 'cosecha' && ac === 'Pendiente');
   const isLider = rol === 'lider' || isAdmin;
   
@@ -2387,33 +2389,54 @@ function renderUsuariosPanel() {
   const rolLabel = {cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor'}[rol]||rol;
   const at = String.fromCharCode(64);
 
+  // Table columns depend on role
+  const showLiderCol = rol === 'lider';
+  const showSupCol   = rol === 'supervisor';
+
   const rows = lista.length ? lista.map(u=>`
     <tr>
-      <td>${u.email}</td>
       <td>${u.nombre||'—'}</td>
-      <td>${rol==='lider'?(u.liderId||'—'):'—'}</td>
+      <td>${u.email}</td>
+      ${showLiderCol ? `<td>${u.liderId||'—'}</td>` : ''}
+      ${showSupCol   ? `<td>${SUPERVISORES.find(s=>s.userId===u.id)?.nombre||'—'}</td>` : ''}
       <td><code style="background:rgba(201,168,76,0.1);padding:2px 8px;border-radius:4px;font-size:12px">${u.pass}</code></td>
       <td><span class="badge ${u.mustChangePass?'badge-pendiente':'badge-si'}">${u.mustChangePass?'Pendiente cambio':'Activo'}</span></td>
       <td>
         <button class="btn btn-ghost btn-sm" onclick="resetPassUser(${u.id})">🔄 Reset</button>
         ${u.id!==1?`<button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteUser(${u.id})">🗑</button>`:''}
       </td>
-    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;opacity:0.5;padding:20px">Sin usuarios con rol ${rolLabel}</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="8" style="text-align:center;opacity:0.5;padding:20px">Sin usuarios con rol ${rolLabel}</td></tr>`;
 
-  const extraField = rol==='lider' ? `
+  // Extra fields in the new user form depending on role
+  let extraFields = '';
+  if (rol === 'lider') {
+    extraFields = `
     <div class="form-group"><label>Líder asignado</label>
       <select id="new-usr-lider" class="filter-input">
         <option value="">— Seleccionar líder —</option>
         ${LIDERES.map(l=>`<option value="${l}">${l}</option>`).join('')}
       </select>
-    </div>` : '';
+    </div>`;
+  } else if (rol === 'supervisor') {
+    extraFields = `
+    <div class="form-group"><label>Supervisor asignado</label>
+      <select id="new-usr-supervisor" class="filter-input">
+        <option value="">— Seleccionar supervisor —</option>
+        ${SUPERVISORES_NOMBRES.map(n=>`<option value="${n}">${n}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  // cosecha and pastor: no extra fields needed
 
   document.getElementById('usr-panel').innerHTML = `
     <div class="card" style="margin-bottom:20px">
       <div class="card-header"><span class="card-title">Usuarios — ${rolLabel}</span></div>
       <div class="card-body">
         <table style="width:100%"><thead><tr>
-          <th>Correo</th><th>Nombre</th><th>Líder asignado</th><th>Contraseña</th><th>Estado</th><th></th>
+          <th>Nombre</th><th>Correo</th>
+          ${showLiderCol ? '<th>Líder asignado</th>' : ''}
+          ${showSupCol   ? '<th>Supervisor asignado</th>' : ''}
+          <th>Contraseña</th><th>Estado</th><th></th>
         </tr></thead><tbody>${rows}</tbody></table>
       </div>
     </div>
@@ -2421,10 +2444,11 @@ function renderUsuariosPanel() {
       <div class="card-header"><span class="card-title">➕ Nuevo usuario — ${rolLabel}</span></div>
       <div class="card-body">
         <div class="form-row">
+          <div class="form-group"><label>Nombre completo</label><input type="text" id="new-usr-nombre" class="filter-input" placeholder="Nombre completo"></div>
           <div class="form-group"><label>Correo electrónico</label><input type="text" id="new-usr-email" class="filter-input" placeholder="correo${at}gmail.com" autocomplete="off" autocapitalize="off"></div>
-          <div class="form-group"><label>Nombre</label><input type="text" id="new-usr-nombre" class="filter-input" placeholder="Nombre completo"></div>
-          ${extraField}
+          ${extraFields}
         </div>
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">Se generará una contraseña provisional. El usuario deberá cambiarla en su primer acceso.</p>
         <button class="btn btn-gold" onclick="addUser('${rol}')">+ Añadir usuario</button>
       </div>
     </div>`;
@@ -2433,23 +2457,42 @@ function renderUsuariosPanel() {
 async function addUser(rol) {
   const emailRaw = document.getElementById('new-usr-email').value.trim().toLowerCase();
   const nombre   = document.getElementById('new-usr-nombre').value.trim();
-  if (!emailRaw) { alert('Introduce un correo electrónico'); return; }
+  if (!nombre)    { alert('Introduce el nombre'); return; }
+  if (!emailRaw)  { alert('Introduce un correo electrónico'); return; }
   if (USERS.find(u=>u.email.toLowerCase()===emailRaw)) { alert('Este correo ya existe'); return; }
+
   const pass = genPass();
-  const newUser = { id:nextUserId++, email:emailRaw, pass, nombre:nombre||emailRaw, rol, mustChangePass:true };
-  if (rol==='lider') {
+  const newUser = { id:nextUserId++, email:emailRaw, pass, nombre, rol, liderId:'', mustChangePass:true };
+
+  if (rol === 'lider') {
     const liderId = document.getElementById('new-usr-lider')?.value || '';
+    if (!liderId) { alert('Selecciona el líder asignado'); return; }
     newUser.liderId = liderId;
-    if (!NOTIFS_POR_LIDER[liderId]) NOTIFS_POR_LIDER[liderId]=[];
+    if (!NOTIFS_POR_LIDER[liderId]) NOTIFS_POR_LIDER[liderId] = [];
   }
+
   await dbSaveUsuario(newUser);
   USERS.push(newUser);
-  document.getElementById('new-usr-email').value='';
-  document.getElementById('new-usr-nombre').value='';
-  if (document.getElementById('new-usr-lider')) document.getElementById('new-usr-lider').value='';
+
+  // If supervisor, link them to the supervisor panel
+  if (rol === 'supervisor') {
+    const supNombre = document.getElementById('new-usr-supervisor')?.value || '';
+    if (supNombre) {
+      const s = SUPERVISORES.find(x => x.nombre === supNombre);
+      if (s) { s.userId = newUser.id; await dbSaveSupervisor(s); }
+    }
+  }
+
+  // Clear fields
+  document.getElementById('new-usr-email').value  = '';
+  document.getElementById('new-usr-nombre').value = '';
+  if (document.getElementById('new-usr-lider'))      document.getElementById('new-usr-lider').value = '';
+  if (document.getElementById('new-usr-supervisor')) document.getElementById('new-usr-supervisor').value = '';
+
   renderUsuariosPanel();
   renderQuickAccess();
-  alert(`✅ Usuario creado.\nContraseña provisional: ${pass}\n\nEl usuario deberá cambiarla al entrar.`);
+  showToast(`✅ Usuario creado — contraseña provisional: ${pass}`, 'ok');
+  alert(`✅ Usuario creado.\n\nContraseña provisional: ${pass}\n\nEl usuario deberá cambiarla al entrar.`);
 }
 
 async function resetPassUser(id) {
