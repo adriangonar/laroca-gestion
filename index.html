@@ -269,7 +269,6 @@
   }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 <script>
@@ -774,11 +773,68 @@ function doLogin() {
 
 <script>
 // ============================================================
-// SUPABASE
+// SUPABASE — REST API directa (sin librería externa)
 // ============================================================
 const SUPA_URL = 'https://mzxyjkhedtrzmfqsmhma.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16eHlqa2hlZHRyem1mcXNtaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3ODczNjMsImV4cCI6MjA4ODM2MzM2M30.uPOqFFsrPHqxEdOBCbL5_r8DJJXl1O2Oa18KrllHRzU';
-let sb = null; // initialized after DOM ready
+const SUPA_HEADERS = {
+  'apikey': SUPA_KEY,
+  'Authorization': 'Bearer ' + SUPA_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+// Objeto sb que imita la API de supabase-js usando fetch directo
+const sb = {
+  from: (table) => ({
+    _table: table,
+    _filters: [],
+    _order: null,
+    select(cols='*') { this._cols = cols; return this; },
+    order(col, opts) { this._order = col + (opts?.ascending===false ? '.desc' : '.asc'); return this; },
+    eq(col, val) { this._filters.push(`${col}=eq.${encodeURIComponent(val)}`); return this; },
+    async _url(extra='') {
+      let url = `${SUPA_URL}/rest/v1/${this._table}?select=${this._cols||'*'}`;
+      if (this._filters.length) url += '&' + this._filters.join('&');
+      if (this._order) url += `&order=${this._order}`;
+      return url + extra;
+    },
+    async get() {
+      const url = await this._url();
+      const r = await fetch(url, { headers: SUPA_HEADERS });
+      const data = await r.json();
+      return { data: Array.isArray(data) ? data : [], error: r.ok ? null : data };
+    },
+    async single() {
+      const url = await this._url('&limit=1');
+      const r = await fetch(url, { headers: {...SUPA_HEADERS, 'Accept': 'application/vnd.pgrst.object+json'} });
+      const data = await r.json();
+      return { data: r.ok ? data : null, error: r.ok ? null : data };
+    },
+    async insert(body) {
+      const url = `${SUPA_URL}/rest/v1/${this._table}`;
+      const r = await fetch(url, { method:'POST', headers: SUPA_HEADERS, body: JSON.stringify(body) });
+      const data = await r.json();
+      if (!r.ok) return { data: null, error: data };
+      const row = Array.isArray(data) ? data[0] : data;
+      return { data: row || null, error: null,
+        select() { return this; },
+        async single() { return { data: row || null, error: null }; }
+      };
+    },
+    async update(body) {
+      const url = `${SUPA_URL}/rest/v1/${this._table}?` + this._filters.join('&');
+      const r = await fetch(url, { method:'PATCH', headers: SUPA_HEADERS, body: JSON.stringify(body) });
+      const data = r.status === 204 ? [] : await r.json();
+      return { data, error: r.ok ? null : data };
+    },
+    async delete() {
+      const url = `${SUPA_URL}/rest/v1/${this._table}?` + this._filters.join('&');
+      const r = await fetch(url, { method:'DELETE', headers: SUPA_HEADERS });
+      return { error: r.ok ? null : await r.json() };
+    }
+  })
+};
 
 // ============================================================
 // DB HELPERS — read/write Supabase
@@ -787,12 +843,12 @@ async function dbLoadAll() {
   showLoadingOverlay(true);
   try {
     const [pRes, cRes, uRes, supRes, grpRes, opRes] = await Promise.all([
-      sb.from('personas').select('*').order('id'),
-      sb.from('cartas').select('*').order('id'),
-      sb.from('usuarios').select('*').order('id'),
-      sb.from('supervisores').select('*').order('id'),
-      sb.from('supervisor_grupos').select('*').order('id'),
-      sb.from('opciones').select('*').order('tipo,id'),
+      sb.from('personas').select('*').order('id').get(),
+      sb.from('cartas').select('*').order('id').get(),
+      sb.from('usuarios').select('*').order('id').get(),
+      sb.from('supervisores').select('*').order('id').get(),
+      sb.from('supervisor_grupos').select('*').order('id').get(),
+      sb.from('opciones').select('*').order('id').get(),
     ]);
 
     // PERSONAS
@@ -863,7 +919,7 @@ async function dbSavePersona(p) {
   if (p.id && p._fromDB) {
     await sb.from('personas').update(row).eq('id', p.id);
   } else {
-    const {data} = await sb.from('personas').insert(row).select().single();
+    const {data} = await sb.from('personas').insert(row).then(r=>r);
     if (data) p.id = data.id;
   }
   p._fromDB = true;
@@ -887,7 +943,7 @@ async function dbSaveCarta(c) {
   if (c._fromDB) {
     await sb.from('cartas').update(row).eq('id', c.id);
   } else {
-    const {data} = await sb.from('cartas').insert(row).select().single();
+    const {data} = await sb.from('cartas').insert(row).then(r=>r);
     if (data) c.id = data.id;
   }
   c._fromDB = true;
@@ -903,7 +959,7 @@ async function dbSaveUsuario(u) {
   if (u._fromDB) {
     await sb.from('usuarios').update(row).eq('id', u.id);
   } else {
-    const {data} = await sb.from('usuarios').insert(row).select().single();
+    const {data} = await sb.from('usuarios').insert(row).then(r=>r);
     if (data) u.id = data.id;
   }
   u._fromDB = true;
@@ -918,7 +974,7 @@ async function dbSaveSupervisor(s) {
   if (s._fromDB) {
     await sb.from('supervisores').update({nombre:s.nombre, user_id:s.userId}).eq('id', s.id);
   } else {
-    const {data} = await sb.from('supervisores').insert({nombre:s.nombre, user_id:s.userId}).select().single();
+    const {data} = await sb.from('supervisores').insert({nombre:s.nombre, user_id:s.userId}).then(r=>r);
     if (data) s.id = data.id;
   }
   s._fromDB = true;
@@ -927,7 +983,7 @@ async function dbSaveSupervisor(s) {
     if (g.id) {
       await sb.from('supervisor_grupos').update({nombre:g.nombre, lideres:g.lideres}).eq('id', g.id);
     } else {
-      const {data} = await sb.from('supervisor_grupos').insert({supervisor_id:s.id, nombre:g.nombre, lideres:g.lideres}).select().single();
+      const {data} = await sb.from('supervisor_grupos').insert({supervisor_id:s.id, nombre:g.nombre, lideres:g.lideres}).then(r=>r);
       if (data) g.id = data.id;
     }
   }
@@ -1085,15 +1141,6 @@ function renderQuickAccess() {
 }
 
 async function doLoginFull() {
-  // Init Supabase client if not yet done
-  if (!sb) {
-    if (typeof supabase === 'undefined' || !supabase.createClient) {
-      alert('Error: No se pudo cargar la librería de base de datos. Comprueba tu conexión a internet.');
-      return;
-    }
-    sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-  }
-
   // Load all data from Supabase
   await dbLoadAll();
 
@@ -1140,9 +1187,6 @@ function doLogout() {
 
 // Render quick access on page load
 window.addEventListener('DOMContentLoaded', function() {
-  if (typeof supabase !== 'undefined' && supabase.createClient) {
-    sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-  }
   renderQuickAccess();
 });
 
