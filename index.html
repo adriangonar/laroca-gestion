@@ -273,14 +273,18 @@
 </head>
 <body>
 <script>
-// Inline stub — available before main script loads
+// Stub mínimo — solo rellena campos. doLoginFull lo define el script principal.
 function quickLogin(email, pass) {
   document.getElementById('login-email').value = email;
   document.getElementById('login-pass').value = pass;
-  document.getElementById('login-email').focus();
 }
-function doLogin(){
-  if(typeof doLoginFull==='function'){ doLoginFull(); }
+function doLogin() {
+  if (typeof doLoginFull === 'function') {
+    doLoginFull();
+  } else {
+    // Script principal aún no cargó — reintenta en 200ms
+    setTimeout(doLogin, 200);
+  }
 }
 </script>
 <!-- LOGIN -->
@@ -1116,14 +1120,6 @@ async function doLoginFull(userIdOrEmail) {
   initApp();
 }
 
-function doLogin() {
-  doLoginFull();
-}
-
-function quickLogin(email, pass) {
-  document.getElementById('login-email').value = email;
-  document.getElementById('login-pass').value = pass;
-}
 function doLogout() {
   currentUser = null;
   document.getElementById('app').style.display='none';
