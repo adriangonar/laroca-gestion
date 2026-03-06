@@ -1010,87 +1010,22 @@ function showToast(msg, tipo='info') {
 // ============================================================
 const _at = String.fromCharCode(64);
 const _d = 'gmail.com';
-let USERS = [
-  { id:1, email:'gonzaleznaranjoa'+_at+_d, pass:'651542371', nombre:'Adrian González', rol:'admin',     mustChangePass:false },
-  { id:2, email:'gonzaleznaranjoadrian'+_at+_d, pass:'1234', nombre:'Adrian (Cosecha)', rol:'cosecha',  mustChangePass:false },
-  { id:3, email:'adrygonar92'+_at+_d, pass:'1234', nombre:'Tae Jun', rol:'lider', liderId:'Tae Jun',    mustChangePass:false }
-];
-let nextUserId = 4;
+// Todos los datos se cargan desde Supabase al hacer login
+let USERS = [];
+let nextUserId = 1;
 
-let LIDERES = [
-  'Andrea Caraballo','Margarita','Ana Karina','Fredel','Juani','Elibet','Ana Ko','Maribel','Yaegun',
-  'Jocieli','Jesenia 1','Jesenia 2','Jesenia 3',
-  'Yamil (24-33 años)','Mateo 1 (19-24)','Estaban J. (PRE-13-16 años)','Juan Esteban (18-25 años)','Mateo 2 (PRE 16-18 años)',
-  'Naomi Zaratán','Débora','Karina','Julieth','Adela','Yeraldin','Cirley',
-  'Paula','Leonor 1/ Beatriz','Leonor 2','Cecilia',
-  'Naomí 1 (22-30)','Naomí 2 (24-31)','Michell Lara (24-30)','Ashley (19-24 años)','Dayana (17-23)','Geraldine (14-18)',
-  'Doris','Ivonne','Julita','Rosa Miranda','Elena','Celia','Kim','Araceli',
-  'Abigail PRE (13-16)','Georgina PRE (13-16)','Damaris PRE (14-18)','Mariani PRE (13-16)',
-  'Laura (6-9 años)','Caludia (10-12 años)','Gisela (6-9 años)','Luz (7-9 años)','Sebe (5-6 años)','Yarleny (10-12 años)',
-  'Fernando','Pastor Miguel','Luciano','Juan Pablo','Fermín',
-  'Pastor Javier','Gustavo','Lucio','Willy','Javier Medina','Áncel (25-35) todos','Wester','Ramón','Nelson','Tae Jun'
-];
+let LIDERES = [];
+let SUPERVISORES_NOMBRES = [];
+let SUPERVISORES = [];
+let nextSupId = 1;
 
-// SUPERVISORES_NOMBRES: master list of supervisor names (managed from Gestionar Opciones)
-let SUPERVISORES_NOMBRES = [
-  'Pastor Javier','Pastor Miguel','Supervisora Luisa','Pastora Yuna',
-  'Supervisora Jesenia','Supervisor Yamil','Naomí Zaratán',
-  'Supervisora Leonor','Supervisora Julita','Supervisora Naomí'
-];
+let DECISIONES = [];
+let MOTIVOS = [];
 
-// SUPERVISORES: each supervisor can have multiple grupos (tabs), each grupo has a name + lideres list
-let SUPERVISORES = [
-  { id:1,  userId:null, nombre:'Pastor Javier',      grupos:[{ nombre:'Grupo', lideres:['Pastor Javier','Gustavo','Lucio','Willy','Javier Medina','Áncel (25-35) todos','Wester','Ramón','Nelson','Tae Jun'] }] },
-  { id:2,  userId:null, nombre:'Pastor Miguel',       grupos:[{ nombre:'Grupo', lideres:['Fernando','Pastor Miguel','Luciano','Juan Pablo','Fermín'] }] },
-  { id:3,  userId:null, nombre:'Supervisora Luisa',   grupos:[
-    { nombre:'Niños',   lideres:['Laura (6-9 años)','Caludia (10-12 años)','Gisela (6-9 años)','Luz (7-9 años)','Sebe (5-6 años)','Yarleny (10-12 años)'] },
-    { nombre:'Mujeres', lideres:['Débora','Karina','Julieth','Adela','Yeraldin','Cirley'] }
-  ]},
-  { id:4,  userId:null, nombre:'Pastora Yuna',        grupos:[{ nombre:'Grupo', lideres:['Andrea Caraballo','Margarita','Ana Karina','Fredel','Juani','Elibet','Ana Ko','Maribel','Yaegun'] }] },
-  { id:5,  userId:null, nombre:'Supervisora Jesenia', grupos:[{ nombre:'Grupo', lideres:['Jocieli','Jesenia 1','Jesenia 2','Jesenia 3'] }] },
-  { id:6,  userId:null, nombre:'Supervisor Yamil',    grupos:[{ nombre:'Grupo', lideres:['Yamil (24-33 años)','Mateo 1 (19-24)','Estaban J. (PRE-13-16 años)','Juan Esteban (18-25 años)','Mateo 2 (PRE 16-18 años)'] }] },
-  { id:7,  userId:null, nombre:'Naomí Zaratán',       grupos:[{ nombre:'Grupo', lideres:['Naomi Zaratán'] }] },
-  { id:8,  userId:null, nombre:'Supervisora Leonor',  grupos:[{ nombre:'Grupo', lideres:['Paula','Leonor 1/ Beatriz','Leonor 2','Cecilia'] }] },
-  { id:9,  userId:null, nombre:'Supervisora Julita',  grupos:[{ nombre:'Grupo', lideres:['Doris','Ivonne','Julita','Rosa Miranda','Elena','Celia','Kim','Araceli'] }] },
-  { id:10, userId:null, nombre:'Supervisora Naomí',   grupos:[
-    { nombre:'Chicas',        lideres:['Naomí 1 (22-30)','Naomí 2 (24-31)','Michell Lara (24-30)','Ashley (19-24 años)','Dayana (17-23)','Geraldine (14-18)'] },
-    { nombre:'Pre-juveniles', lideres:['Abigail PRE (13-16)','Georgina PRE (13-16)','Damaris PRE (14-18)','Mariani PRE (13-16)'] }
-  ]},
-];
-let nextSupId = 11;
-let DECISIONES = ['PASO DE FE','RENOVACIÓN','VISITA'];
-let MOTIVOS = ['ESPÍRITUAL','VIVIENDA','PROBLEMA JUDICIAL','MATRIMONIAL','ECONÓMICO','TRABAJO','SALUD','SALUD DE UN SER QUERIDO','OTRO'];
-
-let PERSONAS = [
-  {id:1,fecha:'2026-02-15',nombre:'Laura',apellidos:'Gómez',telefono:'612345001',email:'',edad:34,grupo:'MUJER',nacionalidad:'España',direccion:'Parquesol',invitadoPor:'Jéssica',decision:'PASO DE FE',lider:'Ashley',motivo:'ESPÍRITUAL',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:2,fecha:'2026-02-15',nombre:'Ana',apellidos:'Torres',telefono:'612345003',email:'',edad:29,grupo:'CHICA',nacionalidad:'Colombia',direccion:'Delicias',invitadoPor:'Rebeca',decision:'RENOVACIÓN',lider:'Patricia',motivo:'VIVIENDA',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:3,fecha:'2026-01-15',nombre:'Sofía',apellidos:'Martín',telefono:'612345004',email:'',edad:37,grupo:'MUJER',nacionalidad:'Alemania',direccion:'Rondilla',invitadoPor:'Clara',decision:'PASO DE FE',lider:'Ashley',motivo:'MATRIMONIAL',obs:'',estado:'Consolidado',asisteCelula:'Sí'},
-  {id:4,fecha:'2026-02-22',nombre:'Paula',apellidos:'Díaz',telefono:'612345005',email:'',edad:45,grupo:'MUJER',nacionalidad:'Cuba',direccion:'Huerta del Rey',invitadoPor:'Jéssica',decision:'RENOVACIÓN',lider:'Juani',motivo:'SALUD',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:5,fecha:'2026-02-22',nombre:'Carlos',apellidos:'López',telefono:'612345006',email:'',edad:39,grupo:'HOMBRE',nacionalidad:'Cabo Verde',direccion:'Girón',invitadoPor:'Carlos',decision:'VISITA',lider:'Tae Jun',motivo:'OTRO',obs:'',estado:'En seguimiento',asisteCelula:'No'},
-  {id:6,fecha:'2026-02-15',nombre:'Miguel',apellidos:'Sánchez',telefono:'612345007',email:'',edad:48,grupo:'HOMBRE',nacionalidad:'Venezuela',direccion:'Pajarillos',invitadoPor:'Miguel',decision:'VISITA',lider:'David',motivo:'ESPÍRITUAL',obs:'',estado:'Consolidado',asisteCelula:'Sí'},
-  {id:7,fecha:'2026-02-22',nombre:'Juan',apellidos:'Pérez',telefono:'612345008',email:'',edad:33,grupo:'HOMBRE',nacionalidad:'Colombia',direccion:'Centro',invitadoPor:'Samuel',decision:'VISITA',lider:'Samuel',motivo:'VIVIENDA',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:8,fecha:'2026-02-15',nombre:'Luis',apellidos:'Romero',telefono:'612345009',email:'',edad:44,grupo:'HOMBRE',nacionalidad:'España',direccion:'Delicias',invitadoPor:'Carlos',decision:'RENOVACIÓN',lider:'Samuel',motivo:'PROBLEMA JUDICIAL',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:9,fecha:'2026-02-22',nombre:'Andrés',apellidos:'Molina',telefono:'612345010',email:'',edad:52,grupo:'HOMBRE',nacionalidad:'Portugal',direccion:'La Overuela',invitadoPor:'Luis',decision:'PASO DE FE',lider:'David',motivo:'MATRIMONIAL',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:10,fecha:'2026-02-15',nombre:'Daniel',apellidos:'Ortega',telefono:'612345011',email:'',edad:19,grupo:'CHICO',nacionalidad:'España',direccion:'Parquesol',invitadoPor:'Natalia',decision:'RENOVACIÓN',lider:'Esteban',motivo:'TRABAJO',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:11,fecha:'2026-02-15',nombre:'Pablo',apellidos:'Navarro',telefono:'612345012',email:'',edad:25,grupo:'CHICO',nacionalidad:'Venezuela',direccion:'La Rondilla',invitadoPor:'Iván',decision:'VISITA',lider:'Javier',motivo:'SALUD DE UN SER QUERIDO',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:12,fecha:'2026-02-15',nombre:'Sergio',apellidos:'León',telefono:'612345013',email:'',edad:21,grupo:'CHICO',nacionalidad:'México',direccion:'Pilarica',invitadoPor:'María',decision:'PASO DE FE',lider:'Juan',motivo:'SALUD DE UN SER QUERIDO',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:13,fecha:'2026-02-22',nombre:'Adrián',apellidos:'Cruz',telefono:'612345014',email:'',edad:27,grupo:'CHICO',nacionalidad:'Argentina',direccion:'Las Flores',invitadoPor:'Sergio',decision:'RENOVACIÓN',lider:'Adrián',motivo:'OTRO',obs:'',estado:'Pendiente de contacto',asisteCelula:'No'},
-  {id:14,fecha:'2026-02-15',nombre:'Iván',apellidos:'Herrera',telefono:'612345015',email:'',edad:31,grupo:'CHICO',nacionalidad:'Andorra',direccion:'Delicias',invitadoPor:'Pablo',decision:'VISITA',lider:'Juan',motivo:'TRABAJO',obs:'',estado:'Consolidado',asisteCelula:'Sí'},
-  {id:15,fecha:'2026-02-22',nombre:'Clara',apellidos:'Morales',telefono:'612345016',email:'',edad:18,grupo:'CHICA',nacionalidad:'Argentina',direccion:'Parquesol',invitadoPor:'Laura',decision:'RENOVACIÓN',lider:'Patricia',motivo:'ECONÓMICO',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:16,fecha:'2026-02-22',nombre:'Elena',apellidos:'Gil',telefono:'612345017',email:'',edad:20,grupo:'CHICA',nacionalidad:'España',direccion:'Huerta del Rey',invitadoPor:'Paula',decision:'PASO DE FE',lider:'Michelle',motivo:'PROBLEMA JUDICIAL',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:17,fecha:'2026-02-15',nombre:'Raquel',apellidos:'Vega',telefono:'612345018',email:'',edad:17,grupo:'CHICA',nacionalidad:'Chile',direccion:'Centro',invitadoPor:'Ana',decision:'PASO DE FE',lider:'Leonor',motivo:'VIVIENDA',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:18,fecha:'2026-02-22',nombre:'Isabel',apellidos:'Cano',telefono:'612345019',email:'',edad:16,grupo:'CHICA',nacionalidad:'Colombia',direccion:'Delicias',invitadoPor:'Marta',decision:'PASO DE FE',lider:'Michelle',motivo:'OTRO',obs:'',estado:'Pendiente de contacto',asisteCelula:'No'},
-  {id:19,fecha:'2026-02-15',nombre:'Noelia',apellidos:'Ramos',telefono:'612345020',email:'',edad:33,grupo:'CHICA',nacionalidad:'Chile',direccion:'Pajarillos',invitadoPor:'Laura',decision:'RENOVACIÓN',lider:'Leonor',motivo:'SALUD DE UN SER QUERIDO',obs:'',estado:'Pendiente de contacto',asisteCelula:'No'},
-  {id:20,fecha:'2026-02-15',nombre:'Ricardo',apellidos:'González',telefono:'612345021',email:'',edad:62,grupo:'HOMBRE',nacionalidad:'Paraguay',direccion:'Paseo Zorrilla',invitadoPor:'Adrián',decision:'VISITA',lider:'Tae Jun',motivo:'TRABAJO',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:21,fecha:'2026-02-15',nombre:'Adolfo',apellidos:'Gómez',telefono:'612345023',email:'',edad:15,grupo:'CHICO',nacionalidad:'España',direccion:'Parquesol',invitadoPor:'Esteban',decision:'VISITA',lider:'Esteban',motivo:'ECONÓMICO',obs:'',estado:'Consolidado',asisteCelula:'Sí'},
-  {id:22,fecha:'2026-02-15',nombre:'Rebeca',apellidos:'Gracia',telefono:'612345024',email:'',edad:24,grupo:'CHICA',nacionalidad:'Angola',direccion:'Pajarillos',invitadoPor:'Michelle',decision:'RENOVACIÓN',lider:'Michell Jara (24-30)',motivo:'PROBLEMA JUDICIAL',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:23,fecha:'2026-02-22',nombre:'Virginia',apellidos:'González',telefono:'666666666',email:'',edad:26,grupo:'CHICA',nacionalidad:'Zambia',direccion:'Centro',invitadoPor:'Michelle',decision:'VISITA',lider:'Michell Jara (24-30)',motivo:'SALUD',obs:'',estado:'En seguimiento',asisteCelula:'Sí'},
-  {id:24,fecha:'2026-02-15',nombre:'Melissa',apellidos:'',telefono:'655555555',email:'',edad:7,grupo:'NIÑ@',nacionalidad:'Alemania',direccion:'Parquesol',invitadoPor:'Naomi',decision:'VISITA',lider:'Juani',motivo:'VIVIENDA',obs:'',estado:'Pendiente de contacto',asisteCelula:'Pendiente'},
-  {id:25,fecha:'2026-03-01',nombre:'TJ',apellidos:'',telefono:'666666666',email:'',edad:34,grupo:'HOMBRE',nacionalidad:'Albania',direccion:'Centro',invitadoPor:'Juan',decision:'VISITA',lider:'David',motivo:'ESPÍRITUAL',obs:'',estado:'En seguimiento',asisteCelula:'Sí'}
-];
+let PERSONAS = [];
 
 let HISTORIALES = {};
-let CARTAS = []; // loaded from Supabase — {id, lider, tipo, num, fecha, personaId, personaNombre, estado, tipoCarta}
+let CARTAS = []; // {id, lider, tipo, num, fecha, personaId, personaNombre, estado, tipoCarta}
 
 let NOTIFS_POR_LIDER = {}; // { 'Tae Jun': [{titulo, body, tiempo, nueva, id}] }
 let currentUser = null;
