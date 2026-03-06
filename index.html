@@ -364,6 +364,7 @@ function doLogin() {
         <div class="nav-item" id="nav-item-cartas" onclick="showPage('cartas')" data-page="cartas"><span class="ni">✉️</span> Cartas / Actividad</div>
         <div class="nav-item" onclick="showPage('motivos')" data-page="motivos"><span class="ni">🙏</span> Motivos de Oración</div>
         <div class="nav-item" onclick="showPage('decisiones')" data-page="decisiones"><span class="ni">✅</span> Decisiones</div>
+        <div class="nav-item" onclick="showPage('trimestral')" data-page="trimestral"><span class="ni">📅</span> Informe Trimestral</div>
         <div class="nav-item" onclick="showPage('sala-salvacion')" data-page="sala-salvacion"><span class="ni">🕊️</span> Sala de Salvación</div>
       </div>
 
@@ -766,54 +767,69 @@ const SUPA_HEADERS = {
 
 // Objeto sb que imita la API de supabase-js usando fetch directo
 const sb = {
-  from: (table) => ({
-    _table: table,
-    _filters: [],
-    _order: null,
-    select(cols='*') { this._cols = cols; return this; },
-    order(col, opts) { this._order = col + (opts?.ascending===false ? '.desc' : '.asc'); return this; },
-    eq(col, val) { this._filters.push(`${col}=eq.${encodeURIComponent(val)}`); return this; },
-    async _url(extra='') {
-      let url = `${SUPA_URL}/rest/v1/${this._table}?select=${this._cols||'*'}`;
-      if (this._filters.length) url += '&' + this._filters.join('&');
-      if (this._order) url += `&order=${this._order}`;
-      return url + extra;
-    },
-    async get() {
-      const url = await this._url();
-      const r = await fetch(url, { headers: SUPA_HEADERS });
-      const data = await r.json();
-      return { data: Array.isArray(data) ? data : [], error: r.ok ? null : data };
-    },
-    async single() {
-      const url = await this._url('&limit=1');
-      const r = await fetch(url, { headers: {...SUPA_HEADERS, 'Accept': 'application/vnd.pgrst.object+json'} });
-      const data = await r.json();
-      return { data: r.ok ? data : null, error: r.ok ? null : data };
-    },
-    async insert(body) {
-      const url = `${SUPA_URL}/rest/v1/${this._table}`;
-      const r = await fetch(url, { method:'POST', headers: SUPA_HEADERS, body: JSON.stringify(body) });
-      const data = await r.json();
-      if (!r.ok) return { data: null, error: data };
-      const row = Array.isArray(data) ? data[0] : data;
-      return { data: row || null, error: null,
-        select() { return this; },
-        async single() { return { data: row || null, error: null }; }
-      };
-    },
-    async update(body) {
-      const url = `${SUPA_URL}/rest/v1/${this._table}?` + this._filters.join('&');
-      const r = await fetch(url, { method:'PATCH', headers: SUPA_HEADERS, body: JSON.stringify(body) });
-      const data = r.status === 204 ? [] : await r.json();
-      return { data, error: r.ok ? null : data };
-    },
-    async delete() {
-      const url = `${SUPA_URL}/rest/v1/${this._table}?` + this._filters.join('&');
-      const r = await fetch(url, { method:'DELETE', headers: SUPA_HEADERS });
-      return { error: r.ok ? null : await r.json() };
-    }
-  })
+  from: (table) => {
+    const q = {
+      _table: table,
+      _filters: [],
+      _order: null,
+      _cols: '*',
+      _op: null,   // 'get'|'update'|'delete'|'insert'
+      _body: null,
+      select(cols='*') { this._cols = cols; return this; },
+      order(col, opts) { this._order = col + (opts?.ascending===false ? '.desc' : '.asc'); return this; },
+      eq(col, val) { this._filters.push(`${col}=eq.${encodeURIComponent(val)}`); return this; },
+      _filterStr() { return this._filters.length ? '&' + this._filters.join('&') : ''; },
+      _baseUrl() { return `${SUPA_URL}/rest/v1/${this._table}`; },
+      // Terminal ops — return this (thenable) so await works
+      get()         { this._op='get';    return this; },
+      single()      { this._op='single'; return this; },
+      delete()      { this._op='delete'; return this; },
+      update(body)  { this._op='update'; this._body=body; return this; },
+      insert(body)  { this._op='insert'; this._body=body; return this; },
+      // Make it thenable so await resolves it
+      then(resolve, reject) {
+        this._exec().then(resolve, reject);
+      },
+      async _exec() {
+        const op = this._op;
+        if (op === 'get') {
+          let url = `${this._baseUrl()}?select=${this._cols}${this._filterStr()}`;
+          if (this._order) url += `&order=${this._order}`;
+          const r = await fetch(url, { headers: SUPA_HEADERS });
+          const data = await r.json();
+          return { data: Array.isArray(data) ? data : [], error: r.ok ? null : data };
+        }
+        if (op === 'single') {
+          let url = `${this._baseUrl()}?select=${this._cols}${this._filterStr()}&limit=1`;
+          if (this._order) url += `&order=${this._order}`;
+          const r = await fetch(url, { headers: {...SUPA_HEADERS, 'Accept':'application/vnd.pgrst.object+json'} });
+          const data = await r.json();
+          return { data: r.ok ? data : null, error: r.ok ? null : data };
+        }
+        if (op === 'delete') {
+          const url = `${this._baseUrl()}?${this._filters.join('&')}`;
+          const r = await fetch(url, { method:'DELETE', headers: SUPA_HEADERS });
+          const txt = await r.text();
+          return { error: r.ok ? null : txt };
+        }
+        if (op === 'update') {
+          const url = `${this._baseUrl()}?${this._filters.join('&')}`;
+          const r = await fetch(url, { method:'PATCH', headers: SUPA_HEADERS, body: JSON.stringify(this._body) });
+          const data = r.status === 204 ? [] : await r.json();
+          return { data, error: r.ok ? null : data };
+        }
+        if (op === 'insert') {
+          const r = await fetch(this._baseUrl(), { method:'POST', headers: SUPA_HEADERS, body: JSON.stringify(this._body) });
+          const data = await r.json();
+          if (!r.ok) return { data: null, error: data };
+          const row = Array.isArray(data) ? data[0] : data;
+          return { data: row || null, error: null };
+        }
+        return { data: null, error: 'No operation set' };
+      }
+    };
+    return q;
+  }
 };
 
 // ============================================================
@@ -1247,7 +1263,7 @@ function applyNavForRole(rol) {
 function showPageForRole(name, rol) {
   // Block map for preview role
   const blocked = {
-    cosecha:    ['global','lideres-stat','trimestral','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
+    cosecha:    ['global','lideres-stat','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
     lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
     supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
     pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
@@ -1452,7 +1468,7 @@ function showPage(name) {
   // Admin with no preview active is never blocked
   if (rol !== 'admin') {
     const blocked = {
-      cosecha:    ['global','lideres-stat','trimestral','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
+      cosecha:    ['global','lideres-stat','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
       lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
       supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
       pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
@@ -1527,18 +1543,24 @@ function renderDashAdmin() {
 
 function renderDashCosecha() {
   document.getElementById('dash-title').textContent = '🌾 Panel de Cosecha';
-  document.getElementById('dash-subtitle').textContent = 'Registro y gestión de personas';
+  document.getElementById('dash-subtitle').textContent = 'Acceso completo al registro — Centro Cristiano La Roca';
   const total = PERSONAS.length;
   const semana = PERSONAS.filter(p=>isThisWeek(p.fecha)).length;
-  const pendiente = PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
+  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
   const seguimiento = PERSONAS.filter(p=>p.estado==='En seguimiento').length;
   const consolidado = PERSONAS.filter(p=>p.estado==='Consolidado').length;
+  const pendienteAsiste = PERSONAS.filter(p=>(p.asisteCelula||'Pendiente')==='Pendiente').length;
+  const si = PERSONAS.filter(p=>p.asisteCelula==='Sí').length;
+  const no = PERSONAS.filter(p=>p.asisteCelula==='No').length;
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat-card gold"><div class="sc-icon">👥</div><div class="sc-val">${total}</div><div class="sc-label">Total registradas</div></div>
     <div class="stat-card green"><div class="sc-icon">🆕</div><div class="sc-val">${semana}</div><div class="sc-label">Esta semana</div></div>
-    <div class="stat-card orange"><div class="sc-icon">⏳</div><div class="sc-val">${pendiente}</div><div class="sc-label">Pendientes contacto</div></div>
+    <div class="stat-card orange"><div class="sc-icon">⏳</div><div class="sc-val">${pendienteEstado}</div><div class="sc-label">Pendiente contacto</div></div>
     <div class="stat-card blue"><div class="sc-icon">🔄</div><div class="sc-val">${seguimiento}</div><div class="sc-label">En seguimiento</div></div>
-    <div class="stat-card green"><div class="sc-icon">✅</div><div class="sc-val">${consolidado}</div><div class="sc-label">Consolidadas</div></div>`;
+    <div class="stat-card green"><div class="sc-icon">✅</div><div class="sc-val">${consolidado}</div><div class="sc-label">Consolidadas</div></div>
+    <div class="stat-card orange"><div class="sc-icon">🔔</div><div class="sc-val">${pendienteAsiste}</div><div class="sc-label">Sin respuesta célula</div></div>
+    <div class="stat-card green"><div class="sc-icon">🙌</div><div class="sc-val">${si}</div><div class="sc-label">Asisten a célula</div></div>
+    <div class="stat-card red"><div class="sc-icon">❌</div><div class="sc-val">${no}</div><div class="sc-label">No asisten</div></div>`;
   const recent = [...PERSONAS].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
   document.getElementById('dash-content').innerHTML = `
     <div class="card">
@@ -1722,7 +1744,8 @@ function renderCartas() {
   if (countEl) countEl.textContent = `${lista.length} seguimiento${lista.length!==1?'s':''} ${liderFil?'— '+liderFil:''}`;
 
   const rol = currentUser?.rol;
-  const puedeEditar = rol === 'admin' || rol === 'cosecha' || rol === 'pastor';
+  const isAdmin = rol === 'admin';
+  const puedeEditar = isAdmin || rol === 'cosecha' || rol === 'pastor';
 
   const tableEl = document.getElementById('table-cartas');
   if (!tableEl) return;
@@ -1739,12 +1762,13 @@ function renderCartas() {
     <td>${c.lider}</td>
     <td>${badgeAsiste(c.estado||'Pendiente')}</td>
     ${puedeEditar ? `<td>
+      ${(isAdmin || c.estado === 'Pendiente') ? `
       <select class="filter-input" style="font-size:11px;padding:4px 6px;width:auto"
         onchange="updateCartaEstado(${c.id}, this.value)">
         <option value="Pendiente" ${c.estado==='Pendiente'?'selected':''}>⏳ Pendiente</option>
         <option value="Sí"        ${c.estado==='Sí'       ?'selected':''}>✅ Sí asiste</option>
         <option value="No"        ${c.estado==='No'       ?'selected':''}>❌ No asiste</option>
-      </select>
+      </select>` : `<small style="color:var(--text-light);font-size:11px">Solo admin</small>`}
     </td>` : ''}
   </tr>`).join('')}
   </tbody></table>`;
@@ -2037,8 +2061,13 @@ function openPersonaModal(id) {
   const p = PERSONAS.find(x=>x.id===id);
   if (!p) return;
   document.getElementById('modal-persona-title').textContent = `${p.nombre} ${p.apellidos}`;
-  const canEdit = currentUser.rol==='cosecha'||currentUser.rol==='admin';
-  const isLider = currentUser.rol==='lider'||currentUser.rol==='admin';
+  const rol = currentUser.rol;
+  const isAdmin = rol === 'admin';
+  const canEdit = rol === 'cosecha' || rol === 'admin';
+  const ac = p.asisteCelula || 'Pendiente';
+  // Cosecha can only change from Pendiente. If already Sí/No, only admin can change.
+  const canChangeAsiste = isAdmin || (rol === 'cosecha' && ac === 'Pendiente');
+  const isLider = rol === 'lider' || isAdmin;
   
   let body = `<div class="detail-grid">
     <div class="detail-field"><label>Fecha registro</label><span>${formatDate(p.fecha)}</span></div>
@@ -2050,21 +2079,25 @@ function openPersonaModal(id) {
     <div class="detail-field"><label>Invitado por</label><span>${p.invitadoPor}</span></div>
     <div class="detail-field"><label>Decisión</label><span>${badgeDecision(p.decision)}</span></div>
     <div class="detail-field"><label>Motivo de oración</label><span>${p.motivo}</span></div>
-    ${(currentUser.rol==='admin'||currentUser.rol==='pastor') ? `<div class="detail-field"><label>Líder asignado</label><span>${p.lider}</span></div>` : ''}
-    <div class="detail-field"><label>Asiste a célula</label><span>${badgeAsiste(p.asisteCelula||'Pendiente')}</span></div>
+    ${(isAdmin || rol==='pastor') ? `<div class="detail-field"><label>Líder asignado</label><span>${p.lider}</span></div>` : ''}
+    <div class="detail-field"><label>Asiste a célula</label><span>${badgeAsiste(ac)}</span></div>
     ${p.obs?`<div class="detail-field" style="grid-column:1/-1"><label>Observaciones</label><span>${p.obs}</span></div>`:''}
   </div>`;
 
-  if (isLider) {
-    const ac = p.asisteCelula||'Pendiente';
+  if (canChangeAsiste) {
     body += `<div style="margin:16px 0;padding:16px;background:rgba(201,168,76,0.06);border-radius:10px;border:1px solid rgba(201,168,76,0.2)">
       <p style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--dark)">¿Asiste a la célula?</p>
-      <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">Actualiza si la notificación fue atendida y si la persona asiste o no.</p>
+      <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">${isAdmin ? 'Administrador — puedes cambiar cualquier estado.' : 'Solo puedes asignar desde Pendiente. Una vez confirmado, solo el administrador puede modificarlo.'}</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-sm ${ac==='Pendiente'?'btn-gold':'btn-ghost'}" onclick="cambiarAsisteCelula(${id},'Pendiente')">⏳ Pendiente</button>
+        ${isAdmin ? `<button class="btn btn-sm ${ac==='Pendiente'?'btn-gold':'btn-ghost'}" onclick="cambiarAsisteCelula(${id},'Pendiente')">⏳ Pendiente</button>` : ''}
         <button class="btn btn-sm ${ac==='Sí'?'btn-green':'btn-ghost'}" onclick="cambiarAsisteCelula(${id},'Sí')">✅ Sí asiste</button>
         <button class="btn btn-sm ${ac==='No'?'btn-red':'btn-ghost'}" onclick="cambiarAsisteCelula(${id},'No')">❌ No asiste</button>
       </div>
+    </div>`;
+  } else if (isLider && !canChangeAsiste) {
+    body += `<div style="margin:16px 0;padding:16px;background:rgba(0,0,0,0.03);border-radius:10px;border:1px solid rgba(0,0,0,0.08)">
+      <p style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--dark)">Asistencia a célula</p>
+      <p style="font-size:12px;color:var(--text-light)">${badgeAsiste(ac)} — Ya confirmado. Solo el administrador puede modificarlo.</p>
     </div>`;
   }
 
