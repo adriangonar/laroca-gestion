@@ -2531,7 +2531,6 @@ function renderUsuariosPanel() {
   const rolLabel = {cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor',analista:'Analista'}[rol]||rol;
   const at = String.fromCharCode(64);
 
-  // Table columns depend on role
   const showLiderCol = rol === 'lider';
   const showSupCol   = rol === 'supervisor';
 
@@ -2549,26 +2548,27 @@ function renderUsuariosPanel() {
       </td>
     </tr>`).join('') : `<tr><td colspan="8" style="text-align:center;opacity:0.5;padding:20px">Sin usuarios con rol ${rolLabel}</td></tr>`;
 
-  // Extra fields in the new user form depending on role
-  let extraFields = '';
+  // Extra selector field for lider/supervisor
+  let extraField = '';
   if (rol === 'lider') {
-    extraFields = `
-    <div class="form-group" style="margin-bottom:0"><label>Líder asignado</label>
-      <select id="new-usr-lider" class="filter-input" style="width:100%">
-        <option value="">— Seleccionar líder —</option>
-        ${LIDERES.map(l=>`<option value="${l}">${l}</option>`).join('')}
-      </select>
-    </div>`;
+    extraField = `
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--gold-light);margin-bottom:6px">Líder asignado</label>
+        <select id="new-usr-lider" class="filter-input" style="width:100%;max-width:400px">
+          <option value="">— Seleccionar líder —</option>
+          ${LIDERES.map(l=>`<option value="${l}">${l}</option>`).join('')}
+        </select>
+      </div>`;
   } else if (rol === 'supervisor') {
-    extraFields = `
-    <div class="form-group" style="margin-bottom:0"><label>Supervisor asignado</label>
-      <select id="new-usr-supervisor" class="filter-input" style="width:100%">
-        <option value="">— Seleccionar supervisor —</option>
-        ${SUPERVISORES_NOMBRES.map(n=>`<option value="${n}">${n}</option>`).join('')}
-      </select>
-    </div>`;
+    extraField = `
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--gold-light);margin-bottom:6px">Supervisor asignado</label>
+        <select id="new-usr-supervisor" class="filter-input" style="width:100%;max-width:400px">
+          <option value="">— Seleccionar supervisor —</option>
+          ${SUPERVISORES_NOMBRES.map(n=>`<option value="${n}">${n}</option>`).join('')}
+        </select>
+      </div>`;
   }
-  // cosecha and pastor: no extra fields needed
 
   document.getElementById('usr-panel').innerHTML = `
     <div class="card" style="margin-bottom:20px">
@@ -2585,12 +2585,16 @@ function renderUsuariosPanel() {
     <div class="card">
       <div class="card-header"><span class="card-title">➕ Nuevo usuario — ${rolLabel}</span></div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;max-width:900px;margin-bottom:14px">
-          <div class="form-group" style="margin-bottom:0"><label>Nombre completo</label><input type="text" id="new-usr-nombre" class="filter-input" style="width:100%" placeholder="Nombre completo"></div>
-          <div class="form-group" style="margin-bottom:0"><label>Correo electrónico</label><input type="text" id="new-usr-email" class="filter-input" style="width:100%" placeholder="correo${at}gmail.com" autocomplete="off" autocapitalize="off"></div>
-          ${extraFields}
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--gold-light);margin-bottom:6px">Nombre completo</label>
+          <input type="text" id="new-usr-nombre" class="filter-input" style="width:100%;max-width:400px" placeholder="Nombre completo">
         </div>
-        <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">Se generará una contraseña provisional. El usuario deberá cambiarla en su primer acceso.</p>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--gold-light);margin-bottom:6px">Correo electrónico</label>
+          <input type="text" id="new-usr-email" class="filter-input" style="width:100%;max-width:400px" placeholder="correo${at}gmail.com" autocomplete="off" autocapitalize="off">
+        </div>
+        ${extraField}
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:14px">Se generará una contraseña provisional. El usuario deberá cambiarla en su primer acceso.</p>
         <button class="btn btn-gold" onclick="addUser('${rol}')">+ Añadir usuario</button>
       </div>
     </div>`;
