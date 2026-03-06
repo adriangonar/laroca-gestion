@@ -396,6 +396,7 @@ function doLogin() {
         <div class="nav-item" onclick="showPage('ajustes')" data-page="ajustes"><span class="ni">⚙️</span> Gestionar opciones</div>
         <div class="nav-item" onclick="showPage('usuarios')" data-page="usuarios"><span class="ni">🔐</span> Gestionar usuarios</div>
         <div class="nav-item" onclick="showPage('supervisores-cfg')" data-page="supervisores-cfg"><span class="ni">🧭</span> Supervisores</div>
+        <div class="nav-item" onclick="showPage('historial')" data-page="historial"><span class="ni">📋</span> Historial</div>
       </div>
     </nav>
 
@@ -584,6 +585,38 @@ function doLogin() {
             <div class="card"><div class="card-header"><span class="card-title">🌱 Personas Plantadas por mes</span></div>
               <div class="card-body"><canvas id="chart-plantadas" height="220"></canvas></div></div>
           </div>
+        </div>
+      </div>
+
+      <!-- HISTORIAL (Admin) -->
+      <div class="page" id="page-historial">
+        <div class="page-header"><h2>📋 Historial de Actividad</h2><p>Registro de todas las acciones realizadas en el sistema</p></div>
+        <div class="filters-bar">
+          <select class="filter-input" id="filter-hist-rol" onchange="renderHistorial()">
+            <option value="">Todos los roles</option>
+            <option value="admin">Admin</option>
+            <option value="cosecha">Cosecha</option>
+            <option value="lider">Líder</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="pastor">Pastor</option>
+          </select>
+          <select class="filter-input" id="filter-hist-accion" onchange="renderHistorial()">
+            <option value="">Todas las acciones</option>
+            <option value="login">Accesos</option>
+            <option value="registro">Nuevos registros</option>
+            <option value="cambio_estado">Cambios de estado</option>
+            <option value="cambio_asiste">Asistencia célula</option>
+            <option value="nuevo_usuario">Usuarios</option>
+            <option value="borrar">Eliminaciones</option>
+            <option value="password">Contraseñas</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" id="historial-count">Actividad</span>
+            <button class="btn btn-ghost btn-sm" onclick="renderHistorial()">🔄 Actualizar</button>
+          </div>
+          <div class="card-body"><div id="table-historial"></div></div>
         </div>
       </div>
 
@@ -999,6 +1032,21 @@ async function dbDeleteSupervisor(id) {
   await sb.from('supervisores').delete().eq('id', id);
 }
 
+// --- HISTORIAL ---
+async function logHistorial(accion, detalle, personaId=null, personaNombre='') {
+  if (!currentUser) return;
+  try {
+    await sb.from('historial').insert({
+      usuario_nombre: currentUser.nombre,
+      usuario_rol:    currentUser.rol,
+      accion,
+      detalle,
+      persona_id:     personaId || null,
+      persona_nombre: personaNombre || ''
+    });
+  } catch(e) { console.warn('Historial error:', e); }
+}
+
 // --- OPCIONES ---
 async function dbSyncOpciones(tipo, arr) {
   await sb.from('opciones').delete().eq('tipo', tipo);
@@ -1102,6 +1150,7 @@ async function doLoginFull() {
 
   if (!user) { document.getElementById('login-error').style.display='block'; showLoadingOverlay(false); return; }
   currentUser = user;
+  logHistorial('login', `Acceso al sistema desde ${new Date().toLocaleString('es-ES')}`);
   document.getElementById('login-error').style.display='none';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
@@ -1263,8 +1312,8 @@ function applyNavForRole(rol) {
 function showPageForRole(name, rol) {
   // Block map for preview role
   const blocked = {
-    cosecha:    ['global','lideres-stat','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
-    lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
+    cosecha:    ['global','lideres-stat','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','historial'],
+    lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','historial'],
     supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
     pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
   };
@@ -1456,6 +1505,59 @@ async function removeOpcion(tipo, idx) {
 }
 
 // ============================================================
+// HISTORIAL
+// ============================================================
+const ACCIONES_LABEL = {
+  login:'🔑 Acceso', registro:'📝 Nuevo registro', cambio_estado:'🔄 Cambio estado',
+  cambio_asiste:'✅ Asistencia célula', nuevo_usuario:'👤 Nuevo usuario',
+  borrar:'🗑 Eliminación', password:'🔑 Contraseña', vista:'👁 Vista',
+  supervisor_cfg:'🧭 Configuración supervisor', opcion:'⚙️ Gestión opciones'
+};
+
+async function renderHistorial() {
+  const tableEl = document.getElementById('table-historial');
+  const countEl = document.getElementById('historial-count');
+  if (!tableEl) return;
+  tableEl.innerHTML = '<p style="opacity:0.5;padding:20px;text-align:center">Cargando...</p>';
+
+  const rolFil    = document.getElementById('filter-hist-rol')?.value    || '';
+  const accionFil = document.getElementById('filter-hist-accion')?.value || '';
+
+  let q = sb.from('historial').select('*').order('fecha', {ascending:false});
+  if (rolFil)    q = q.eq('usuario_rol', rolFil);
+  if (accionFil) q = q.eq('accion', accionFil);
+
+  const {data, error} = await q.get();
+  if (error || !data) { tableEl.innerHTML = '<p style="color:red;padding:20px">Error cargando historial</p>'; return; }
+
+  if (countEl) countEl.textContent = `${data.length} registro${data.length!==1?'s':''}`;
+
+  if (!data.length) {
+    tableEl.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>Sin actividad registrada aún</p></div>';
+    return;
+  }
+
+  const rolColors = {admin:'#C9A84C',cosecha:'#27AE60',lider:'#2980B9',supervisor:'#8E44AD',pastor:'#2C3E50'};
+  tableEl.innerHTML = `<table><thead><tr>
+    <th>Fecha y hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th><th>Persona</th>
+  </tr></thead><tbody>
+  ${data.map(h => {
+    const fecha = new Date(h.fecha).toLocaleString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const rolColor = rolColors[h.usuario_rol] || '#666';
+    const accionLabel = ACCIONES_LABEL[h.accion] || h.accion;
+    return `<tr>
+      <td style="font-size:12px;white-space:nowrap">${fecha}</td>
+      <td><strong>${h.usuario_nombre}</strong></td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:${rolColor}22;color:${rolColor};border:1px solid ${rolColor}44">${h.usuario_rol}</span></td>
+      <td style="font-size:12px">${accionLabel}</td>
+      <td style="font-size:12px;max-width:300px">${h.detalle||'—'}</td>
+      <td style="font-size:12px">${h.persona_nombre||'—'}</td>
+    </tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
+// ============================================================
 // NAVIGATION
 // ============================================================
 function showPage(name) {
@@ -1468,8 +1570,8 @@ function showPage(name) {
   // Admin with no preview active is never blocked
   if (rol !== 'admin') {
     const blocked = {
-      cosecha:    ['global','lideres-stat','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
-      lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup'],
+      cosecha:    ['global','lideres-stat','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','historial'],
+      lider:      ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','ajustes','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','historial'],
       supervisor: ['personas','nuevo-registro','cartas','motivos','decisiones','global','lideres-stat','trimestral','sala-salvacion','ajustes','usuarios','supervisores-cfg'],
       pastor:     ['nuevo-registro','ajustes','mis-personas','usuarios','supervisores-cfg','mis-lideres','mi-informe-sup','global'],
     };
@@ -1484,21 +1586,22 @@ function showPage(name) {
 
   // Render on demand
   if (name==='dashboard') renderDashboard();
-  if (name==='personas') renderPersonas();
+  if (name==='personas') { renderPersonas(); logHistorial('vista','Vistas: lista de personas'); }
   if (name==='nuevo-registro') initNuevoRegistro();
-  if (name==='cartas') renderCartas();
-  if (name==='motivos') renderMotivos();
-  if (name==='decisiones') renderDecisiones();
+  if (name==='cartas') { renderCartas(); logHistorial('vista','Vistas: cartas/seguimiento'); }
+  if (name==='motivos') { renderMotivos(); logHistorial('vista','Vistas: motivos de oración'); }
+  if (name==='decisiones') { renderDecisiones(); logHistorial('vista','Vistas: decisiones'); }
   if (name==='mis-personas') renderMisPersonas();
-  if (name==='global') renderGlobal();
-  if (name==='lideres-stat') renderLideresStat();
+  if (name==='global') { renderGlobal(); logHistorial('vista','Vistas: vista global'); }
+  if (name==='lideres-stat') { renderLideresStat(); logHistorial('vista','Vistas: actividad de líderes'); }
   if (name==='ajustes') renderAjustes();
-  if (name==='trimestral') renderTrimestral();
-  if (name==='sala-salvacion') renderSalaSalvacion();
+  if (name==='trimestral') { renderTrimestral(); logHistorial('vista','Vistas: informe trimestral'); }
+  if (name==='sala-salvacion') { renderSalaSalvacion(); logHistorial('vista','Vistas: sala de salvación'); }
   if (name==='usuarios') renderUsuarios();
   if (name==='supervisores-cfg') renderSupervisoresCfg();
   if (name==='mis-lideres') renderMisLideres();
   if (name==='mi-informe-sup') renderMiInformeSup();
+  if (name==='historial') renderHistorial();
 }
 
 // ============================================================
@@ -1682,6 +1785,7 @@ async function guardarPersona() {
   await dbSavePersona(nueva);
   PERSONAS.push(nueva);
   HISTORIAL = HISTORIALES[nueva.id] = [];
+  logHistorial('registro', `Registrado/a: ${nueva.nombre} ${nueva.apellidos} — Decisión: ${nueva.decision} — Líder: ${lider}`, nueva.id, `${nueva.nombre} ${nueva.apellidos}`);
 
   // Crear carta/seguimiento automático para el líder
   const carta = {
@@ -2136,6 +2240,7 @@ async function cambiarAsisteCelula(id, valor) {
   if (!p) return;
   p.asisteCelula = valor;
   await dbUpdatePersonaField(id, {asisteCelula: valor});
+  logHistorial('cambio_asiste', `Asistencia célula → "${valor}"`, id, `${p.nombre} ${p.apellidos}`);
   if (!HISTORIALES[id]) HISTORIALES[id]=[];
   const texto = valor==='Sí' ? `✅ Confirmado: SÍ asiste a célula` : valor==='No' ? `❌ Confirmado: NO asiste a célula` : `⏳ Estado restablecido a Pendiente`;
   HISTORIALES[id].push({texto, fecha:new Date().toLocaleString('es'), estado:valor});
@@ -2154,6 +2259,7 @@ async function cambiarEstadoCosecha(id) {
   if (!p) return;
   p.estado = sel.value;
   await dbUpdatePersonaField(id, {estado: sel.value});
+  logHistorial('cambio_estado', `Estado → "${sel.value}"`, id, `${p.nombre} ${p.apellidos}`);
   if (!HISTORIALES[id]) HISTORIALES[id]=[];
   HISTORIALES[id].push({texto:`Estado actualizado a "${sel.value}" por ${currentUser.nombre}`, fecha:new Date().toLocaleString('es'), estado:sel.value});
   closeModal('modal-persona');
@@ -2355,6 +2461,7 @@ async function guardarNuevaPass() {
   await sb.from('usuarios').update({ pass: p1, must_change_pass: false }).eq('id', currentUser.id);
   currentUser.pass = p1;
   currentUser.mustChangePass = false;
+  logHistorial('password', 'Contraseña cambiada por el usuario en primer acceso');
   document.getElementById('modal-cambiar-pass').classList.remove('open');
   renderQuickAccess();
   renderDashboard();
@@ -2473,6 +2580,7 @@ async function addUser(rol) {
 
   await dbSaveUsuario(newUser);
   USERS.push(newUser);
+  logHistorial('nuevo_usuario', `Usuario creado: ${newUser.nombre} (${newUser.email}) — rol: ${rol}`);
 
   // If supervisor, link them to the supervisor panel
   if (rol === 'supervisor') {
@@ -2502,13 +2610,16 @@ async function resetPassUser(id) {
   u.pass = pass;
   u.mustChangePass = true;
   await dbSaveUsuario(u);
+  logHistorial('password', `Contraseña reseteada para: ${u.nombre} (${u.email})`);
   renderUsuariosPanel();
   alert(`🔄 Contraseña restablecida.\nNueva contraseña provisional: ${pass}`);
 }
 
 async function deleteUser(id) {
-  if (!confirm('¿Eliminar este usuario?')) return;
+  const u = USERS.find(x=>x.id===id);
+  if (!confirm(`¿Eliminar usuario ${u?.nombre||id}?`)) return;
   await dbDeleteUsuario(id);
+  logHistorial('borrar', `Usuario eliminado: ${u?.nombre} (${u?.email})`);
   const idx = USERS.findIndex(u=>u.id===id);
   if (idx>-1) USERS.splice(idx,1);
   renderUsuariosPanel();
@@ -2618,13 +2729,16 @@ async function crearNuevoGrupo() {
   document.getElementById('nuevo-grupo-titulo').value = '';
   document.getElementById('nuevo-grupo-supervisor').value = '';
   document.getElementById('nuevo-grupo-form').style.display = 'none';
+  logHistorial('supervisor_cfg', `Grupo "${titulo}" creado para supervisor: ${supNombre}`);
   renderSupervisoresCfg();
   showToast(`✅ Grupo "${titulo}" creado para ${supNombre}`, 'ok');
 }
 
 async function deleteSupervisor(id) {
-  if (!confirm('¿Eliminar configuración de supervisor?')) return;
+  const s = SUPERVISORES.find(x=>x.id===id);
+  if (!confirm(`¿Eliminar configuración de supervisor "${s?.nombre}"?`)) return;
   await dbDeleteSupervisor(id);
+  logHistorial('borrar', `Supervisor eliminado: ${s?.nombre}`);
   SUPERVISORES = SUPERVISORES.filter(s=>s.id!==id);
   renderSupervisoresCfg();
 }
