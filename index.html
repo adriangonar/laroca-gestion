@@ -40,53 +40,122 @@
 
   /* LOGIN */
   #login-screen {
-    min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 50%, var(--dark3) 100%);
-    position:relative; overflow:hidden;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #0d0900 0%, #1A1208 40%, #2a1e08 100%);
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
   }
   #login-screen::before {
-    content:''; position:absolute; inset:0;
-    background: radial-gradient(ellipse at 30% 50%, rgba(201,168,76,0.15) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%);
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 20%, rgba(201,168,76,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(201,168,76,0.07) 0%, transparent 60%);
+    pointer-events: none;
   }
   .login-card {
-    background:rgba(255,255,255,0.05); backdrop-filter:blur(20px);
-    border:1px solid rgba(201,168,76,0.3); border-radius:20px;
-    padding:48px 40px; width:100%; max-width:420px; position:relative; z-index:1;
-    box-shadow: var(--shadow-lg);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 28px;
+    padding: 52px 44px 44px;
+    width: 100%;
+    max-width: 460px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.08) inset;
   }
-  .login-logo { text-align:center; margin-bottom:32px; }
-  .login-logo .logo-img { width:90px; height:90px; object-fit:contain; display:block; margin:0 auto 12px; filter:drop-shadow(0 2px 8px rgba(201,168,76,0.4)); }
-  .login-logo h1 { font-family:'Playfair Display',serif; color:var(--white); font-size:24px; font-weight:600; }
-  .login-logo p { color:var(--gold-light); font-size:13px; letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
-  .header-brand .logo-img { width:36px; height:36px; object-fit:contain; filter:drop-shadow(0 1px 4px rgba(201,168,76,0.3)); }
-  .form-group { margin-bottom:20px; }
-  .form-group label { display:block; color:var(--gold-light); font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .login-logo .logo-img {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 20px;
+    filter: drop-shadow(0 4px 20px rgba(201,168,76,0.5));
+  }
+  .login-logo h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--white);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .login-logo p {
+    color: var(--gold-light);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-group label {
+    display: block;
+    color: var(--gold-light);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
   .form-group input, .form-group select, .form-group textarea {
-    width:100%; padding:12px 16px; background:rgba(255,255,255,0.92);
-    border:1px solid rgba(201,168,76,0.35); border-radius:10px;
-    color:#1A1208; font-family:'DM Sans',sans-serif; font-size:14px;
-    transition:all 0.2s;
+    width: 100%;
+    padding: 15px 18px;
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    transition: all 0.2s;
+    box-sizing: border-box;
   }
   .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-    outline:none; border-color:var(--gold); background:rgba(255,255,255,0.1);
-    box-shadow:0 0 0 3px rgba(201,168,76,0.15);
+    outline: none;
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.08);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
   }
-  .form-group input::placeholder { color:rgba(60,40,20,0.4); }
-  .form-group select option { background:#fff; color:#1A1208; }
+  .form-group input::placeholder { color: rgba(255,255,255,0.3); font-size: 15px; }
+  .form-group select option { background: #1A1208; color: #fff; }
   .btn-primary {
-    width:100%; padding:14px; background:linear-gradient(135deg, var(--gold), var(--gold-dark));
-    border:none; border-radius:10px; color:var(--dark); font-family:'DM Sans',sans-serif;
-    font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s;
-    letter-spacing:0.5px;
+    width: 100%;
+    padding: 17px;
+    background: linear-gradient(135deg, var(--gold) 0%, #b8882a 100%);
+    border: none;
+    border-radius: 14px;
+    color: #0d0900;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+    box-shadow: 0 8px 24px rgba(201,168,76,0.3);
   }
-  .btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(201,168,76,0.4); }
-  .login-error { color:#FF6B6B; font-size:13px; text-align:center; margin-top:12px; display:none; }
-  .demo-accounts { margin-top:24px; padding-top:20px; border-top:1px solid rgba(201,168,76,0.15); }
-  .demo-accounts p { color:rgba(255,255,255,0.4); font-size:11px; text-align:center; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px; }
-  .demo-btn { display:block; width:100%; padding:8px; background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.2); border-radius:8px; color:var(--gold-light); font-size:12px; cursor:pointer; margin-bottom:6px; font-family:'DM Sans',sans-serif; transition:all 0.2s; text-align:left; }
-  .demo-btn:hover { background:rgba(201,168,76,0.15); }
-  .demo-btn span { opacity:0.6; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(201,168,76,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+  .login-error { color: #FF6B6B; font-size: 13px; text-align: center; margin-top: 14px; display: none; padding: 10px; background: rgba(255,107,107,0.1); border-radius: 8px; }
+  .demo-accounts { margin-top: 28px; padding-top: 22px; border-top: 1px solid rgba(201,168,76,0.12); }
+  .demo-accounts p { color: rgba(255,255,255,0.35); font-size: 11px; text-align: center; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .demo-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.15); border-radius: 10px; color: var(--gold-light); font-size: 13px; cursor: pointer; margin-bottom: 8px; font-family: 'DM Sans', sans-serif; transition: all 0.2s; text-align: left; }
+  .demo-btn:hover { background: rgba(201,168,76,0.13); border-color: rgba(201,168,76,0.3); }
+  .demo-btn strong { color: #fff; font-size: 14px; }
+  .demo-btn span { opacity: 0.55; margin-left: auto; font-size: 11px; }
 
   /* APP LAYOUT */
   #app { display:none; min-height:100vh; }
@@ -97,6 +166,7 @@
     box-shadow:0 2px 16px rgba(26,18,8,0.3);
   }
   .header-brand { display:flex; align-items:center; gap:10px; }
+  .header-brand .logo-img { width:36px; height:36px; object-fit:contain; filter:drop-shadow(0 1px 4px rgba(201,168,76,0.3)); }
   .header-brand .icon { color:var(--gold); font-size:20px; }
   .header-brand h2 { font-family:'Playfair Display',serif; color:var(--white); font-size:17px; }
   .header-right { display:flex; align-items:center; gap:16px; }
@@ -385,8 +455,10 @@
     #table-historial table th:nth-child(5) { max-width: 140px; }
 
     /* Login */
-    .login-box { padding: 28px 20px; margin: 0 12px; }
-    .login-box h1 { font-size: 22px; }
+    .login-card { padding: 36px 24px 32px; border-radius: 22px; }
+    .login-logo .logo-img { width: 90px; height: 90px; }
+    .login-logo h1 { font-size: 22px; }
+    .btn-primary { font-size: 16px; padding: 16px; }
 
     /* Detail grid */
     .detail-field label { font-size: 10px; }
@@ -1195,7 +1267,7 @@ async function logHistorial(accion, detalle, personaId=null, personaNombre='') {
       persona_id:     personaId   || null,
       persona_nombre: personaNombre || ''
     };
-    const res = await sb.from('historial').insert(row).get();
+    const res = await sb.from('historial').insert(row).then(r=>r);
     if (res.error) console.warn('Historial insert error:', res.error);
   } catch(e) { console.warn('Historial error:', e); }
 }
@@ -1303,6 +1375,8 @@ async function doLoginFull() {
 
   if (!user) { document.getElementById('login-error').style.display='block'; showLoadingOverlay(false); return; }
   currentUser = user;
+  // Guardar sesión persistente (solo se borra al pulsar "Salir")
+  localStorage.setItem('la_roca_session', JSON.stringify({ id: user.id, pass: user.pass }));
   logHistorial('login', `Acceso al sistema desde ${new Date().toLocaleString('es-ES')}`);
   document.getElementById('login-error').style.display='none';
   document.getElementById('login-screen').style.display='none';
@@ -1312,6 +1386,7 @@ async function doLoginFull() {
 
 function doLogout() {
   currentUser = null;
+  localStorage.removeItem('la_roca_session');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-email').value='';
@@ -1322,6 +1397,30 @@ function doLogout() {
 // Render quick access on page load
 window.addEventListener('DOMContentLoaded', function() {
   renderQuickAccess();
+
+  // ── Sesión persistente ──
+  // Si el usuario no pulsó "Salir", restauramos su sesión automáticamente
+  const saved = localStorage.getItem('la_roca_session');
+  if (saved) {
+    try {
+      const session = JSON.parse(saved);
+      // Cargar datos y entrar directamente sin pedir contraseña
+      (async () => {
+        await dbLoadAll();
+        const user = USERS.find(u => u.id === session.id && u.pass === session.pass);
+        if (user) {
+          currentUser = user;
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+          await initApp();
+        } else {
+          localStorage.removeItem('la_roca_session');
+        }
+      })();
+    } catch(e) {
+      localStorage.removeItem('la_roca_session');
+    }
+  }
 });
 
 // ============================================================
@@ -2556,12 +2655,15 @@ async function dbSaveNotif(notif, destinatarioId) {
       cuerpo: notif.body,
       leida:  false,
       fecha:  new Date().toISOString()
-    }).get();
+    }).then(r=>r);
     if (res.error) console.warn('[Notif] dbSaveNotif error:', res.error);
-    else if (res.data && res.data[0]) {
+    else if (res.data) {
       // Actualizar id en memoria con el id real de Supabase
-      const mem = (NOTIFS_POR_LIDER[destinatarioId]||[]).find(n=>n.id===notif.id);
-      if (mem) mem.id = res.data[0].id;
+      const real = Array.isArray(res.data) ? res.data[0] : res.data;
+      if (real && real.id) {
+        const mem = (NOTIFS_POR_LIDER[destinatarioId]||[]).find(n=>n.id===notif.id);
+        if (mem) mem.id = real.id;
+      }
     }
   } catch(e) { console.warn('[Notif] dbSaveNotif catch:', e.message||e); }
 }
@@ -2590,18 +2692,26 @@ async function requestPushPermission() {
   }
 }
 
-// Disparar notificación nativa del navegador/móvil
-function pushNativeNotif(titulo, body, icon) {
+// Disparar notificación nativa — usa SW si está disponible (funciona en background)
+function pushNativeNotif(titulo, body) {
   if (!('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
   try {
-    new Notification(titulo, {
-      body,
-      icon: icon || './icon-192.png',
-      badge: './icon-192.png',
-      vibrate: [200, 100, 200],
-      tag: 'la-roca-notif'
-    });
+    // Usar el Service Worker para mostrar la notif (funciona aunque la app esté minimizada)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SHOW_NOTIF', title: titulo, body
+      });
+    } else {
+      // Fallback directo si el SW no está activo
+      new Notification(titulo, {
+        body,
+        icon: './icon-192.png',
+        badge: './icon-192.png',
+        vibrate: [200, 100, 200],
+        tag: 'la-roca-notif'
+      });
+    }
   } catch(e) {}
 }
 
