@@ -133,8 +133,7 @@
   .form-group input::placeholder { color: rgba(255,255,255,0.35); font-size: 15px; }
   .form-group select option { background: #1A1208; color: #fff; }
 
-  /* ── Interior app: TODOS los inputs, selects y textareas ── */
-  /* Fondo blanco, texto invisible por defecto, visible solo al escribir */
+  /* ── Interior app: fondo blanco, texto negro siempre visible ── */
   .main-content .form-group input,
   .main-content .form-group select,
   .main-content .form-group textarea,
@@ -146,53 +145,21 @@
   #app textarea {
     background: #ffffff !important;
     border-color: rgba(201,168,76,0.3);
-    color: rgba(26,18,8,0.0) !important;
-    -webkit-text-fill-color: rgba(26,18,8,0.0) !important;
+    color: #1A1208 !important;
+    -webkit-text-fill-color: #1A1208 !important;
+    outline: none;
   }
-  /* Al escribir o cuando tiene valor → texto negro visible */
-  .main-content .form-group input:focus,
-  .main-content .form-group select:focus,
-  .main-content .form-group textarea:focus,
-  .modal .form-group input:focus,
-  .modal .form-group select:focus,
-  .modal .form-group textarea:focus,
   #app input:not(#login-pass):not(#login-email):focus,
   #app select:focus,
-  #app textarea:focus,
-  .main-content .form-group input:not(:placeholder-shown),
-  .main-content .form-group textarea:not(:placeholder-shown),
-  .modal .form-group input:not(:placeholder-shown),
-  .modal .form-group textarea:not(:placeholder-shown),
-  #app input:not(#login-pass):not(#login-email):not(:placeholder-shown),
-  #app textarea:not(:placeholder-shown) {
-    color: #1A1208 !important;
-    -webkit-text-fill-color: #1A1208 !important;
-    background: #ffffff !important;
-    border-color: var(--gold);
+  #app textarea:focus {
+    border-color: var(--gold) !important;
     box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
   }
-  /* Select siempre visible cuando tiene opción seleccionada */
-  #app select:not([value=""]),
-  .main-content .form-group select,
-  .modal .form-group select {
-    color: #1A1208 !important;
-    -webkit-text-fill-color: #1A1208 !important;
-  }
-  /* Autocompletado */
-  .main-content .form-group input:-webkit-autofill,
-  .modal .form-group input:-webkit-autofill,
   #app input:-webkit-autofill {
     -webkit-box-shadow: 0 0 0 50px #ffffff inset !important;
     -webkit-text-fill-color: #1A1208 !important;
   }
-  .main-content .form-group input::placeholder,
-  .main-content .form-group textarea::placeholder,
-  .modal .form-group input::placeholder,
-  .modal .form-group textarea::placeholder,
-  #app input::placeholder,
-  #app textarea::placeholder { color: rgba(26,18,8,0.35); }
-  .main-content .form-group select option,
-  .modal .form-group select option,
+  #app input::placeholder, #app textarea::placeholder { color: rgba(26,18,8,0.35); }
   #app select option { background: #fff; color: #1A1208; }
   .btn-primary {
     width: 100%;
@@ -973,10 +940,6 @@ function doLogin() {
           </select>
           <input type="text" class="filter-input" id="filter-hist-usuario" placeholder="🔍 Filtrar por usuario..." oninput="renderHistorial()" style="min-width:160px">
           <input type="text" class="filter-input" id="filter-hist-persona" placeholder="🔍 Filtrar por persona..." oninput="renderHistorial()" style="min-width:160px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-light);cursor:pointer;white-space:nowrap">
-            <input type="checkbox" id="filter-hist-sensibles" onchange="renderHistorial()" style="width:14px;height:14px">
-            Mostrar eliminaciones y contraseñas
-          </label>
         </div>
         <div class="card">
           <div class="card-header">
@@ -2462,20 +2425,19 @@ async function guardarPersona() {
     showToast(`⚠️ Persona guardada pero no se encontró el usuario líder "${lider}" para notificar`, 'warn');
   }
 
-  // Limpiar formulario
+  // Limpiar todos los campos del formulario
   ['reg-nombre','reg-apellidos','reg-telefono','reg-email','reg-edad',
    'reg-direccion','reg-invitado-por','reg-obs'].forEach(id => {
-    document.getElementById(id).value = '';
+    const el = document.getElementById(id); if (el) el.value = '';
   });
-  ['reg-nacionalidad','reg-grupo','reg-decision','reg-motivo','reg-lider'].forEach(id => {
-    document.getElementById(id).selectedIndex = 0;
+  ['reg-fecha','reg-nacionalidad','reg-grupo','reg-decision','reg-motivo','reg-lider'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
   });
 
-  showToast(`✅ ${nombre} ${apellidos} registrado/a correctamente`, 'ok');
-
-  // Volver al inicio y refrescar datos
-  renderDashboard();
-  renderPersonas();
+  showToast(`✅ ${nombre} ${apellidos} registrado/a`, 'ok');
   showPage('dashboard');
 }
 
