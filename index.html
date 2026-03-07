@@ -215,8 +215,7 @@
   .preview-select option { color:var(--dark); background:#fff; }
   .preview-banner { background:linear-gradient(90deg,#C9A84C,#a07830); color:var(--dark); padding:8px 20px; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .preview-banner button { background:rgba(0,0,0,0.15); border:1px solid rgba(0,0,0,0.2); border-radius:6px; padding:3px 12px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:700; }
-  .notif-btn { position:relative; background:none; border:none; color:rgba(255,255,255,0.6); cursor:pointer; font-size:18px; padding:4px; }
-  .notif-badge { position:absolute; top:-2px; right:-2px; background:var(--gold); color:var(--dark); border-radius:50%; width:16px; height:16px; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  /* campana eliminada */
 
   .app-body { display:flex; min-height:calc(100vh - 60px); }
 
@@ -310,14 +309,7 @@
   .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; padding-top:20px; border-top:1px solid rgba(201,168,76,0.12); }
 
   /* NOTIFICATION PANEL */
-  .notif-panel { position:fixed; top:60px; right:0; width:320px; background:var(--white); border-left:1px solid rgba(201,168,76,0.15); box-shadow:-4px 0 24px rgba(26,18,8,0.12); height:calc(100vh - 60px); z-index:200; overflow-y:auto; transform:translateX(100%); transition:transform 0.3s; padding:20px; }
-  .notif-panel.open { transform:translateX(0); }
-  .notif-panel h3 { font-family:'Playfair Display',serif; font-size:17px; margin-bottom:16px; color:var(--dark); }
-  .notif-item { padding:12px; background:rgba(201,168,76,0.06); border-radius:10px; margin-bottom:10px; border-left:3px solid var(--gold); }
-  .notif-item .ni-title { font-size:13px; font-weight:600; color:var(--dark); }
-  .notif-item .ni-body { font-size:12px; color:var(--text-light); margin-top:3px; }
-  .notif-item .ni-time { font-size:11px; color:var(--text-light); margin-top:4px; opacity:0.7; }
-  .notif-new { border-left-color:var(--gold); background:rgba(201,168,76,0.1); }
+  /* panel notif eliminado */
 
   /* FILTERS */
   .filters-bar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
@@ -529,8 +521,7 @@
     .tab { font-size: 12px; padding: 7px 12px; }
 
     /* ── Notification panel ── */
-    .notif-panel { width: 92vw; }
-    .notif-panel.open { transform: translateX(0); right: 0; left: auto; }
+
 
     /* ── Preview banner ── */
     .preview-banner { font-size: 11px; padding: 6px 12px; flex-wrap: wrap; gap: 6px; }
@@ -639,10 +630,7 @@ function doLogin() {
       <h2>Centro Cristiano La Roca</h2>
     </div>
     <div class="header-right">
-      <button class="notif-btn" onclick="toggleNotif()" id="notif-btn">
-        🔔
-        <span class="notif-badge" id="notif-count" style="display:none">0</span>
-      </button>
+
       <!-- Selector de vista múltiple (visible cuando el usuario tiene >1 rol, nunca admin) -->
       <div id="multi-rol-selector" style="display:none;align-items:center;gap:8px">
         <span style="font-size:11px;color:rgba(255,255,255,0.5)">Vista:</span>
@@ -744,9 +732,9 @@ function doLogin() {
           <input type="text" class="filter-input" id="filter-personas" placeholder="🔍 Buscar por nombre, líder..." oninput="renderPersonas()">
           <select class="filter-input" id="filter-estado" onchange="renderPersonas()">
             <option value="">Todos los estados</option>
-            <option>Pendiente de contacto</option>
-            <option>En seguimiento</option>
-            <option>Consolidado</option>
+            <option value="Pendiente">⏳ Pendiente</option>
+            <option value="En seguimiento">🔄 En seguimiento</option>
+            <option value="">— Sin estado</option>
           </select>
           <select class="filter-input" id="filter-lider-p" onchange="renderPersonas()">
             <option value="">Todos los líderes</option>
@@ -1042,12 +1030,22 @@ function doLogin() {
   </div>
 
   <!-- Notification panel -->
-  <div class="notif-panel" id="notif-panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3>🔔 Notificaciones</h3>
-      <button onclick="toggleNotif()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-light);padding:4px">✕</button>
+
+</div>
+
+
+<!-- MODAL NOTIFICACIONES -->
+<div id="notif-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,18,8,0.65);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(26,18,8,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 12px;border-bottom:1px solid rgba(201,168,76,0.2)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">🔔</span>
+        <span style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#1A1208">Notificaciones</span>
+        <span id="notif-modal-count" style="background:var(--gold);color:#1A1208;border-radius:20px;font-size:11px;font-weight:700;padding:2px 8px"></span>
+      </div>
+      <button onclick="cerrarModalNotif()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1">×</button>
     </div>
-    <div id="notif-list"></div>
+    <div id="notif-modal-list" style="padding:16px"></div>
   </div>
 </div>
 
@@ -1544,7 +1542,6 @@ let PERSONAS = [];
 let HISTORIALES = {};
 let CARTAS = []; // {id, lider, tipo, num, fecha, personaId, personaNombre, estado, tipoCarta}
 
-let NOTIFS_POR_LIDER = {}; // { 'Tae Jun': [{titulo, body, tiempo, nueva, id}] }
 let currentUser = null;
 let nextPersonaId = 26;
 let nextCartaId = 9;
@@ -1678,7 +1675,6 @@ async function initApp() {
   populateLiderSelects();
 
   // Campana visible para todos
-  document.getElementById('notif-btn').style.display = 'inline-flex';
   if (!NOTIFS_POR_LIDER[currentUser.id]) NOTIFS_POR_LIDER[currentUser.id] = [];
 
   // First-login password change
@@ -1696,21 +1692,16 @@ async function initApp() {
   requestPushPermission();
 
   // Si hay notificaciones sin leer al entrar → mostrar panel automáticamente
+  // Mostrar modal si hay notificaciones sin leer al entrar
   const sinLeer = getMyNotifs().filter(n => !n.leida);
-  if (sinLeer.length > 0) {
-    sinLeer.forEach(n => pushNativeNotif(n.titulo, n.body));
-    mostrarPanelNotif();
-  }
+  if (sinLeer.length > 0) abrirModalNotif();
 
   // Polling cada 10s — detecta notifs nuevas en tiempo real
-  setInterval(async () => {
-    const antesNoLeidas = getMyNotifs().filter(n => !n.leida).length;
+  setInterval(async function() {
+    var antes = getMyNotifs().filter(function(n){ return !n.leida; }).length;
     await dbLoadNotifs();
-    const ahoraNoLeidas = getMyNotifs().filter(n => !n.leida).length;
-    if (ahoraNoLeidas > antesNoLeidas) {
-      pushNativeNotif('🔔 Nueva notificación', getMyNotifs().find(n => !n.leida)?.titulo || '');
-      mostrarPanelNotif();
-    }
+    var ahora = getMyNotifs().filter(function(n){ return !n.leida; }).length;
+    if (ahora > antes) abrirModalNotif();
   }, 10000);
 }
 
@@ -2175,7 +2166,7 @@ function renderDashboard() {
 function renderDashAnalista() {
   const total = PERSONAS.length;
   const semana = PERSONAS.filter(p=>isThisWeek(p.fecha)).length;
-  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
+  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente').length;
   const seguimiento = PERSONAS.filter(p=>p.estado==='En seguimiento').length;
   const consolidado = PERSONAS.filter(p=>p.estado==='Consolidado').length;
   const pendienteAsiste = PERSONAS.filter(p=>(p.asisteCelula||'Pendiente')==='Pendiente').length;
@@ -2205,7 +2196,7 @@ function renderDashAdmin() {
   document.getElementById('dash-subtitle').textContent = 'Acceso completo al sistema — Centro Cristiano La Roca';
   const total = PERSONAS.length;
   const semana = PERSONAS.filter(p=>isThisWeek(p.fecha)).length;
-  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
+  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente').length;
   const seguimiento = PERSONAS.filter(p=>p.estado==='En seguimiento').length;
   const consolidado = PERSONAS.filter(p=>p.estado==='Consolidado').length;
   const pendienteAsiste = PERSONAS.filter(p=>(p.asisteCelula||'Pendiente')==='Pendiente').length;
@@ -2233,7 +2224,7 @@ function renderDashCosecha() {
   document.getElementById('dash-subtitle').textContent = 'Acceso completo al registro — Centro Cristiano La Roca';
   const total = PERSONAS.length;
   const semana = PERSONAS.filter(p=>isThisWeek(p.fecha)).length;
-  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
+  const pendienteEstado = PERSONAS.filter(p=>p.estado==='Pendiente').length;
   const seguimiento = PERSONAS.filter(p=>p.estado==='En seguimiento').length;
   const consolidado = PERSONAS.filter(p=>p.estado==='Consolidado').length;
   const pendienteAsiste = PERSONAS.filter(p=>(p.asisteCelula||'Pendiente')==='Pendiente').length;
@@ -2279,7 +2270,7 @@ function renderDashPastor() {
   const total = PERSONAS.length;
   const consolidado = PERSONAS.filter(p=>p.estado==='Consolidado').length;
   const seguimiento = PERSONAS.filter(p=>p.estado==='En seguimiento').length;
-  const pendiente = PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
+  const pendiente = PERSONAS.filter(p=>p.estado==='Pendiente').length;
   document.getElementById('dash-title').textContent = '📊 Panel Pastoral';
   document.getElementById('dash-subtitle').textContent = 'Vista global del ministerio — solo lectura';
   document.getElementById('dash-stats').innerHTML = `
@@ -2365,7 +2356,7 @@ async function guardarPersona() {
     lider,
     motivo:      document.getElementById('reg-motivo').value,
     obs:         document.getElementById('reg-obs').value,
-    estado:      'Pendiente de contacto',
+    estado:      'Pendiente',
     asisteCelula:'Pendiente'
   };
 
@@ -2617,7 +2608,7 @@ function buildMisPersonasTable(lista) {
 // ============================================================
 function renderGlobal() {
   const total = PERSONAS.length; const c=PERSONAS.filter(p=>p.estado==='Consolidado').length;
-  const s=PERSONAS.filter(p=>p.estado==='En seguimiento').length; const p=PERSONAS.filter(p=>p.estado==='Pendiente de contacto').length;
+  const s=PERSONAS.filter(p=>p.estado==='En seguimiento').length; const p=PERSONAS.filter(p=>p.estado==='Pendiente').length;
   document.getElementById('global-stats').innerHTML = `
     <div class="stat-card gold"><div class="sc-icon">👥</div><div class="sc-val">${total}</div><div class="sc-label">Total personas</div></div>
     <div class="stat-card green"><div class="sc-icon">✅</div><div class="sc-val">${c}</div><div class="sc-label">Consolidadas</div></div>
@@ -2793,19 +2784,34 @@ function openPersonaModal(id) {
   const p = PERSONAS.find(x=>x.id===id);
   if (!p) return;
 
-  // Registrar que se ha consultado esta persona
   logHistorial('vista', `Consultó ficha de: ${p.nombre} ${p.apellidos}`, id, `${p.nombre} ${p.apellidos}`);
 
   document.getElementById('modal-persona-title').textContent = `${p.nombre} ${p.apellidos}`;
-  const rol = currentUser.rol;
+  const rol   = currentUser.rol;
   const isAdmin = rol === 'admin';
-  const canEdit = (rol === 'cosecha' || rol === 'admin');  // analista cannot edit
+
+  // ── Estado de seguimiento ──────────────────────────────────
+  // Valores: 'Pendiente' | 'En seguimiento' | '' (sin estado)
+  // Al registrar → siempre 'Pendiente'
+  // Líder puede: Pendiente → En seguimiento SOLO
+  // Admin puede: cualquier cambio
+  const estadoActual = p.estado || 'Pendiente';
+  const esPendiente  = estadoActual === 'Pendiente';
+  const liderPuedeEstado = (rol === 'lider') && esPendiente; // solo de pendiente → en seguimiento
+
+  // ── Asistencia célula ──────────────────────────────────────
+  // Líder: solo puede cambiar si asisteCelula === 'Pendiente'
   const ac = p.asisteCelula || 'Pendiente';
-  // Pastor and analista cannot change asiste celula at all
-  // Cosecha can only change from Pendiente → Sí/No. Once confirmed, only admin.
-  const canChangeAsiste = isAdmin || (rol === 'cosecha' && ac === 'Pendiente');
-  const isLider = rol === 'lider' || isAdmin;
-  
+  const liderPuedeAsiste = (rol === 'lider') && (ac === 'Pendiente');
+  const canChangeAsiste  = isAdmin || liderPuedeAsiste;
+
+  // Badge estado
+  function badgeEstado(e) {
+    if (e === 'Pendiente')       return '<span style="background:rgba(243,156,18,0.12);color:#e67e22;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏳ Pendiente</span>';
+    if (e === 'En seguimiento')  return '<span style="background:rgba(39,174,96,0.12);color:#27ae60;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔄 En seguimiento</span>';
+    return '<span style="background:rgba(0,0,0,0.06);color:#888;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">— Sin estado</span>';
+  }
+
   let body = `<div class="detail-grid">
     <div class="detail-field"><label>Fecha registro</label><span>${formatDate(p.fecha)}</span></div>
     <div class="detail-field"><label>Teléfono</label><span>${p.telefono}</span></div>
@@ -2816,52 +2822,63 @@ function openPersonaModal(id) {
     <div class="detail-field"><label>Invitado por</label><span>${p.invitadoPor}</span></div>
     <div class="detail-field"><label>Decisión</label><span>${badgeDecision(p.decision)}</span></div>
     <div class="detail-field"><label>Motivo de oración</label><span>${p.motivo}</span></div>
-    ${(isAdmin || rol==='pastor') ? `<div class="detail-field"><label>Líder asignado</label><span>${p.lider}</span></div>` : ''}
+    ${(isAdmin || rol==='pastor' || rol==='supervisor') ? `<div class="detail-field"><label>Líder asignado</label><span>${p.lider}</span></div>` : ''}
+    <div class="detail-field"><label>Estado seguimiento</label><span>${badgeEstado(estadoActual)}</span></div>
     <div class="detail-field"><label>Asiste a célula</label><span>${badgeAsiste(ac)}</span></div>
     ${p.obs?`<div class="detail-field" style="grid-column:1/-1"><label>Observaciones</label><span>${p.obs}</span></div>`:''}
   </div>`;
 
-  if (canChangeAsiste) {
+  // ── Bloque cambio de ESTADO ────────────────────────────────
+  if (isAdmin || liderPuedeEstado) {
     body += `<div style="margin:16px 0;padding:16px;background:rgba(201,168,76,0.06);border-radius:10px;border:1px solid rgba(201,168,76,0.2)">
-      <p style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--dark)">¿Asiste a la célula?</p>
-      <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">${isAdmin ? 'Administrador — puedes cambiar cualquier estado.' : 'Solo puedes asignar desde Pendiente. Una vez confirmado, solo el administrador puede modificarlo.'}</p>
+      <p style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--dark)">Estado de seguimiento</p>
+      <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">${isAdmin ? 'Administrador — puedes cambiar a cualquier estado.' : 'Puedes pasar a En seguimiento si ya contactaste. Una vez hecho, solo el admin puede cambiarlo.'}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${isAdmin ? `<button class="btn btn-sm ${estadoActual==='Pendiente'?'btn-gold':'btn-ghost'}" onclick="cambiarEstadoPersona(${id},'Pendiente')">⏳ Pendiente</button>` : ''}
+        <button class="btn btn-sm ${estadoActual==='En seguimiento'?'btn-green':'btn-ghost'}" onclick="cambiarEstadoPersona(${id},'En seguimiento')">🔄 En seguimiento</button>
+        ${isAdmin ? `<button class="btn btn-sm ${(!estadoActual||estadoActual==='')?'btn-ghost':'btn-ghost'}" onclick="cambiarEstadoPersona(${id},'')">— Sin estado</button>` : ''}
+      </div>
+    </div>`;
+  } else if (rol === 'lider' && !esPendiente) {
+    body += `<div style="margin:16px 0;padding:12px 16px;background:rgba(0,0,0,0.03);border-radius:10px;border:1px solid rgba(0,0,0,0.08)">
+      <p style="font-size:12px;color:var(--text-light)">Estado: ${badgeEstado(estadoActual)} — Solo el administrador puede modificarlo.</p>
+    </div>`;
+  }
+
+  // ── Bloque cambio ASISTENCIA ───────────────────────────────
+  if (canChangeAsiste) {
+    body += `<div style="margin:16px 0;padding:16px;background:rgba(39,174,96,0.05);border-radius:10px;border:1px solid rgba(39,174,96,0.15)">
+      <p style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--dark)">¿Asiste a la célula?</p>
+      <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">${isAdmin ? 'Administrador — puedes cambiar cualquier valor.' : 'Marca si se ha unido o no a la célula. Una vez confirmado, solo el admin puede cambiarlo.'}</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         ${isAdmin ? `<button class="btn btn-sm ${ac==='Pendiente'?'btn-gold':'btn-ghost'}" onclick="cambiarAsisteCelula(${id},'Pendiente')">⏳ Pendiente</button>` : ''}
         <button class="btn btn-sm ${ac==='Sí'?'btn-green':'btn-ghost'}" onclick="cambiarAsisteCelula(${id},'Sí')">✅ Sí asiste</button>
         <button class="btn btn-sm ${ac==='No'?'btn-red':'btn-ghost'}" onclick="cambiarAsisteCelula(${id},'No')">❌ No asiste</button>
       </div>
     </div>`;
-  } else if (isLider && !canChangeAsiste) {
-    body += `<div style="margin:16px 0;padding:16px;background:rgba(0,0,0,0.03);border-radius:10px;border:1px solid rgba(0,0,0,0.08)">
-      <p style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--dark)">Asistencia a célula</p>
-      <p style="font-size:12px;color:var(--text-light)">${badgeAsiste(ac)} — Ya confirmado. Solo el administrador puede modificarlo.</p>
+  } else if (rol === 'lider' && ac !== 'Pendiente') {
+    body += `<div style="margin:16px 0;padding:12px 16px;background:rgba(0,0,0,0.03);border-radius:10px;border:1px solid rgba(0,0,0,0.08)">
+      <p style="font-size:12px;color:var(--text-light)">Asistencia: ${badgeAsiste(ac)} — Solo el administrador puede modificarlo.</p>
     </div>`;
   }
 
-  // Historial
+  // ── Historial ──────────────────────────────────────────────
   const hist = HISTORIALES[id]||[];
   if (hist.length) {
-    body += `<p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-light);margin-bottom:8px">Historial</p>`;
-    body += hist.map(h=>`<div class="history-item ${h.estado.toLowerCase().includes('seguimiento')?'si':h.estado.toLowerCase().includes('consolidado')?'si':'no'}">
+    body += `<p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-light);margin:16px 0 8px">Historial</p>`;
+    body += hist.map(h=>`<div class="history-item ${h.estado&&h.estado.toLowerCase().includes('seguimiento')?'si':'no'}">
       <div class="history-text">${h.texto}</div>
       <div class="history-meta">${h.fecha}</div>
     </div>`).join('');
   }
 
   document.getElementById('modal-persona-body').innerHTML = body;
-  
-  let footer = '';
-  if (canEdit) {
-    footer = `<select id="modal-estado-sel" class="filter-input" style="margin-right:auto">
-      <option ${p.estado==='Pendiente de contacto'?'selected':''}>Pendiente de contacto</option>
-      <option ${p.estado==='En seguimiento'?'selected':''}>En seguimiento</option>
-      <option ${p.estado==='Consolidado'?'selected':''}>Consolidado</option>
-    </select>
-    <button class="btn btn-ghost" onclick="closeModal('modal-persona')">Cerrar</button>
-    <button class="btn btn-gold" onclick="cambiarEstadoCosecha(${id})">Actualizar estado</button>`;
-  } else {
-    footer = `<button class="btn btn-ghost" onclick="closeModal('modal-persona')">Cerrar</button>`;
-  }
+
+  // Footer — solo edición general para admin/cosecha
+  const canEdit = isAdmin || rol === 'cosecha';
+  let footer = canEdit
+    ? `<button class="btn btn-ghost" onclick="closeModal('modal-persona')">Cerrar</button>`
+    : `<button class="btn btn-ghost" onclick="closeModal('modal-persona')">Cerrar</button>`;
   document.getElementById('modal-persona-footer').innerHTML = footer;
   document.getElementById('modal-persona').classList.add('open');
 }
@@ -2883,19 +2900,34 @@ async function cambiarAsisteCelula(id, valor) {
   showToast(texto, 'ok');
 }
 
-async function cambiarEstadoCosecha(id) {
-  const sel = document.getElementById('modal-estado-sel');
-  if (!sel) return;
+async function cambiarEstadoPersona(id, nuevoEstado) {
   const p = PERSONAS.find(x=>x.id===id);
   if (!p) return;
-  p.estado = sel.value;
-  await dbUpdatePersonaField(id, {estado: sel.value});
-  await logHistorial('cambio_estado', `Estado → "${sel.value}"`, id, `${p.nombre} ${p.apellidos}`);
-  if (!HISTORIALES[id]) HISTORIALES[id]=[];
-  HISTORIALES[id].push({texto:`Estado actualizado a "${sel.value}" por ${currentUser.nombre}`, fecha:new Date().toLocaleString('es'), estado:sel.value});
+  const rol = currentUser.rol;
+  const isAdmin = rol === 'admin';
+  const estadoActual = p.estado || 'Pendiente';
+
+  // Validar permisos: líder solo puede pasar de Pendiente → En seguimiento
+  if (!isAdmin) {
+    if (estadoActual !== 'Pendiente') {
+      showToast('❌ Solo el administrador puede cambiar este estado', 'error');
+      return;
+    }
+    if (nuevoEstado !== 'En seguimiento') {
+      showToast('❌ Solo puedes marcar como En seguimiento', 'error');
+      return;
+    }
+  }
+
+  p.estado = nuevoEstado;
+  await dbUpdatePersonaField(id, { estado: nuevoEstado });
+  await logHistorial('cambio_estado', `Estado → "${nuevoEstado || 'Sin estado'}"`, id, `${p.nombre} ${p.apellidos}`);
+  if (!HISTORIALES[id]) HISTORIALES[id] = [];
+  HISTORIALES[id].push({ texto: `Estado actualizado a "${nuevoEstado || 'Sin estado'}" por ${currentUser.nombre}`, fecha: new Date().toLocaleString('es'), estado: nuevoEstado });
   closeModal('modal-persona');
-  renderPersonas();
-  showToast(`✅ Estado actualizado a "${sel.value}"`, 'ok');
+  showToast(`✅ Estado → "${nuevoEstado || 'Sin estado'}"`, 'ok');
+  if (rol === 'lider') renderMisPersonas();
+  else { renderDashboard(); renderPersonas(); }
 }
 
 // ============================================================
@@ -2903,194 +2935,64 @@ async function cambiarEstadoCosecha(id) {
 // ============================================================
 
 // ── Push nativa — usa SW registration para funcionar en background ──
-async function pushNativeNotif(titulo, body) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-  try {
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg) {
-        // Esto funciona aunque la app esté minimizada o cerrada
-        await reg.showNotification(titulo, {
-          body,
-          icon:    './icon-192.png',
-          badge:   './icon-192.png',
-          vibrate: [200, 100, 200],
-          tag:     'la-roca-notif-' + Date.now(),
-          requireInteraction: true  // queda visible hasta que el usuario la toque
-        });
-        return;
-      }
-    }
-    // Fallback
-    new Notification(titulo, { body, icon: './icon-192.png' });
-  } catch(e) { console.warn('[Push]', e); }
-}
-
-// ── Cargar notifs desde Supabase ──
-async function dbLoadNotifs() {
-  if (!currentUser) return 0;
-  try {
-    const res = await sb.from('notificaciones')
-      .select('*')
-      .eq('destinatario_id', currentUser.id)
-      .order('id', {ascending: false})
-      .get();
-    if (res.data && !res.error) {
-      const fromDB = res.data.map(r => ({
-        id:     r.id,
-        titulo: r.titulo,
-        body:   r.cuerpo,
-        tiempo: r.fecha ? new Date(r.fecha).toLocaleString('es') : '',
-        nueva:  !r.leida,
-        leida:  r.leida
-      }));
-      const inMem  = NOTIFS_POR_LIDER[currentUser.id] || [];
-      const dbIds  = new Set(fromDB.map(n => n.id));
-      const memOnly = inMem.filter(n => typeof n.id === 'number' && n.id > 1e12 && !dbIds.has(n.id)); // solo in-memory temporales
-      NOTIFS_POR_LIDER[currentUser.id] = [...memOnly, ...fromDB];
-      updateNotifBadge();
-      return fromDB.filter(n => n.nueva).length;
-    }
-  } catch(e) {
-    console.warn('[Notif] dbLoadNotifs error:', e.message || e);
-  }
-  return 0;
-}
-
-async function dbSaveNotif(notif, destinatarioId) {
-  const { data, error } = await supaInsert('notificaciones', {
-    destinatario_id: destinatarioId,
-    titulo: notif.titulo,
-    cuerpo: notif.body,
-    leida:  false,
-    fecha:  new Date().toISOString()
-  });
-  if (error) {
-    console.error('[Notif] Error guardando notificación:', error);
-    showToast('⚠️ Error guardando notificación en Supabase', 'error');
-  } else if (data) {
-    const real = Array.isArray(data) ? data[0] : data;
-    if (real && real.id) {
-      const mem = (NOTIFS_POR_LIDER[destinatarioId] || []).find(n => n.id === notif.id);
-      if (mem) mem.id = real.id;
-    }
-    console.log('[Notif] ✅ Guardada para destinatario', destinatarioId);
-  }
-}
-
-async function dbMarkNotifsLeidas(ids) {
-  if (!ids || !ids.length) return;
-  try {
-    for (const id of ids) {
-      await sb.from('notificaciones').update({leida: true}).eq('id', id).get();
-    }
-  } catch(e) {}
-}
-
-async function dbDeleteAllNotifs() {
-  if (!currentUser) return;
-  try {
-    await sb.from('notificaciones').delete().eq('destinatario_id', currentUser.id).get();
-  } catch(e) {}
-}
-
-async function requestPushPermission() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'default') {
-    await Notification.requestPermission();
-  }
-}
-
-// ── Añadir notificación ──
-async function addNotif(titulo, body, destinatarioId) {
-  const notif = {
-    id:     Date.now(), // temporal hasta que Supabase devuelva el real
-    titulo, body,
-    tiempo: new Date().toLocaleString('es'),
-    nueva:  true,
-    leida:  false
-  };
-
-  if (!NOTIFS_POR_LIDER[destinatarioId]) NOTIFS_POR_LIDER[destinatarioId] = [];
-  NOTIFS_POR_LIDER[destinatarioId].unshift(notif);
-
-  await dbSaveNotif(notif, destinatarioId);
-
-  // Si es para el usuario actual: badge + panel + push
-  if (currentUser && destinatarioId === currentUser.id) {
-    updateNotifBadge();
-    mostrarPanelNotif(notif);  // abrir panel automáticamente
-    pushNativeNotif(titulo, body);
-  }
-}
-
-// ── Abrir panel de notificaciones automáticamente ──
-function mostrarPanelNotif() {
-  const panel = document.getElementById('notif-panel');
-  if (!panel) return;
-  panel.classList.add('open');
-  renderNotifs();
-}
-
-function toggleNotif() {
-  const panel = document.getElementById('notif-panel');
-  const isOpen = panel.classList.toggle('open');
-  if (isOpen) renderNotifs();
-}
+// ============================================================
+// NOTIFICACIONES — modal simple sin campana
+// ============================================================
+let NOTIFS_POR_LIDER = {}; // { userId: [{id, titulo, body, tiempo, leida}] }
 
 function getMyNotifs() {
   if (!currentUser) return [];
   return NOTIFS_POR_LIDER[currentUser.id] || [];
 }
 
-function updateNotifBadge() {
-  const count = getMyNotifs().filter(n => !n.leida).length;
-  const badge = document.getElementById('notif-count');
-  const btn   = document.getElementById('notif-btn');
-  if (!badge) return;
-  if (count > 0) {
-    badge.style.display = 'flex';
-    badge.textContent   = count > 9 ? '9+' : String(count);
-    if (btn) btn.style.color = 'var(--gold)';
-  } else {
-    badge.style.display = 'none';
-    if (btn) btn.style.color = '';
-  }
+function abrirModalNotif() {
+  const overlay = document.getElementById('notif-modal-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  renderModalNotifs();
 }
 
-function renderNotifs() {
-  const list   = document.getElementById('notif-list');
+function cerrarModalNotif() {
+  const overlay = document.getElementById('notif-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function renderModalNotifs() {
+  const list   = document.getElementById('notif-modal-list');
+  const countEl = document.getElementById('notif-modal-count');
   const notifs = getMyNotifs();
+  const sinLeer = notifs.filter(n => !n.leida).length;
+
+  if (countEl) countEl.textContent = sinLeer > 0 ? sinLeer + ' nueva' + (sinLeer > 1 ? 's' : '') : '';
 
   if (!notifs.length) {
-    list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-light)"><div style="font-size:36px;margin-bottom:12px">&#128276;</div><p style="font-size:13px">Sin notificaciones</p></div>';
+    list.innerHTML = '<div style="text-align:center;padding:40px 0;color:#aaa"><div style="font-size:36px;margin-bottom:8px">&#128276;</div><p>Sin notificaciones</p></div>';
     return;
   }
 
   list.innerHTML = notifs.map(function(n, idx) {
-    var borderColor = !n.leida ? 'rgba(201,168,76,0.5)' : 'rgba(0,0,0,0.06)';
-    var bgColor     = !n.leida ? 'rgba(201,168,76,0.08)' : '#fafafa';
-    var dot         = !n.leida ? '<div style="position:absolute;top:10px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--gold)"></div>' : '';
-    var tap         = !n.leida ? '<div style="font-size:10px;color:var(--gold);margin-top:6px;font-weight:600">&#128070; Toca para marcar como le\u00edda</div>' : '';
-    return '<div onclick="marcarNotifLeida(' + idx + ')" style="cursor:pointer;padding:14px;border-radius:10px;margin-bottom:10px;border:1px solid ' + borderColor + ';background:' + bgColor + ';position:relative;transition:all 0.2s">'
-      + dot
-      + '<div style="font-weight:700;font-size:13px;color:var(--dark);margin-bottom:4px;padding-right:18px">' + n.titulo + '</div>'
-      + '<div style="font-size:12px;color:var(--text-light);margin-bottom:6px">' + n.body + '</div>'
-      + '<div style="font-size:11px;color:rgba(26,18,8,0.35)">' + n.tiempo + '</div>'
+    var bg     = !n.leida ? 'rgba(201,168,76,0.10)' : '#f9f9f9';
+    var border = !n.leida ? '2px solid rgba(201,168,76,0.6)' : '1px solid #eee';
+    var dot    = !n.leida ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-left:6px;vertical-align:middle"></span>' : '';
+    var tap    = !n.leida ? '<div style="font-size:10px;color:var(--gold);margin-top:6px;font-weight:600">&#128070; Toca para marcar como le\u00edda</div>' : '<div style="font-size:10px;color:#bbb;margin-top:4px">Le\u00edda</div>';
+    return '<div onclick="marcarNotifLeida(' + idx + ')" style="cursor:pointer;padding:14px;border-radius:10px;margin-bottom:10px;border:' + border + ';background:' + bg + ';transition:all 0.2s">'
+      + '<div style="font-weight:700;font-size:13px;color:#1A1208;margin-bottom:3px">' + n.titulo + dot + '</div>'
+      + '<div style="font-size:12px;color:#666;margin-bottom:4px">' + n.body + '</div>'
+      + '<div style="font-size:11px;color:#bbb">' + n.tiempo + '</div>'
       + tap
       + '</div>';
-  }).join('');
+  }).join('')
+  + '<div style="text-align:center;padding-top:8px">'
+  + '<button onclick="clearAllNotifs()" style="font-size:11px;background:none;border:1px solid #ddd;color:#999;border-radius:8px;padding:6px 16px;cursor:pointer">&#128465; Limpiar todo</button>'
+  + '</div>';
 }
 
 async function marcarNotifLeida(idx) {
-  const notifs = getMyNotifs();
-  const n = notifs[idx];
+  var notifs = getMyNotifs();
+  var n = notifs[idx];
   if (!n || n.leida) return;
   n.leida = true;
-  n.nueva = false;
-  updateNotifBadge();
-  renderNotifs();
+  renderModalNotifs();
   if (n.id && n.id < 1e12) {
     try {
       await fetch(SUPA_URL + '/rest/v1/notificaciones?id=eq.' + n.id, {
@@ -3098,11 +3000,9 @@ async function marcarNotifLeida(idx) {
       });
     } catch(e) {}
   }
+  // cerrar si ya no quedan sin leer
   if (getMyNotifs().filter(function(x){ return !x.leida; }).length === 0) {
-    setTimeout(function() {
-      var panel = document.getElementById('notif-panel');
-      if (panel) panel.classList.remove('open');
-    }, 700);
+    setTimeout(cerrarModalNotif, 800);
   }
 }
 
@@ -3110,9 +3010,63 @@ async function clearAllNotifs() {
   if (!currentUser) return;
   NOTIFS_POR_LIDER[currentUser.id] = [];
   await dbDeleteAllNotifs();
-  renderNotifs();
-  updateNotifBadge();
+  cerrarModalNotif();
 }
+
+async function dbDeleteAllNotifs() {
+  if (!currentUser) return;
+  try {
+    await fetch(SUPA_URL + '/rest/v1/notificaciones?destinatario_id=eq.' + currentUser.id, {
+      method: 'DELETE', headers: SUPA_HEADERS
+    });
+  } catch(e) {}
+}
+
+async function dbLoadNotifs() {
+  if (!currentUser) return;
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/notificaciones?destinatario_id=eq.' + currentUser.id + '&order=fecha.desc&limit=30', { headers: SUPA_HEADERS });
+    if (!r.ok) return;
+    var rows = await r.json();
+    if (!Array.isArray(rows)) return;
+    var inMem   = NOTIFS_POR_LIDER[currentUser.id] || [];
+    var memIds  = new Set(inMem.map(function(n){ return n.id; }));
+    var fromDB  = rows.filter(function(row){ return !memIds.has(row.id); }).map(function(row){
+      return { id: row.id, titulo: row.titulo, body: row.cuerpo, tiempo: new Date(row.fecha).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}), leida: !!row.leida };
+    });
+    NOTIFS_POR_LIDER[currentUser.id] = [...inMem, ...fromDB];
+  } catch(e) {}
+}
+
+async function dbSaveNotif(notif, destinatarioId) {
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/notificaciones', {
+      method: 'POST', headers: SUPA_HEADERS,
+      body: JSON.stringify({ destinatario_id: destinatarioId, titulo: notif.titulo, cuerpo: notif.body, leida: false })
+    });
+    if (r.ok) {
+      var data = await r.json();
+      var row  = Array.isArray(data) ? data[0] : data;
+      if (row && row.id) {
+        var mem = (NOTIFS_POR_LIDER[destinatarioId] || []).find(function(n){ return n.id === notif.id; });
+        if (mem) mem.id = row.id;
+      }
+    }
+  } catch(e) {}
+}
+
+async function addNotif(titulo, body, destinatarioId) {
+  var notif = { id: Date.now(), titulo: titulo, body: body, tiempo: new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}), leida: false };
+  if (!NOTIFS_POR_LIDER[destinatarioId]) NOTIFS_POR_LIDER[destinatarioId] = [];
+  NOTIFS_POR_LIDER[destinatarioId].unshift(notif);
+  await dbSaveNotif(notif, destinatarioId);
+  // Si es para el usuario actual → mostrar modal
+  if (currentUser && destinatarioId === currentUser.id) {
+    abrirModalNotif();
+  }
+}
+
+
 
 
 // ============================================================
