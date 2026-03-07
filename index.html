@@ -916,30 +916,15 @@ function doLogin() {
 
       <!-- HISTORIAL (Admin) -->
       <div class="page" id="page-historial">
-        <div class="page-header"><h2>📋 Historial de Actividad</h2><p>Registro de todas las acciones realizadas en el sistema</p></div>
+        <div class="page-header"><h2>📋 Historial</h2><p>Registros, cambios de estado y asistencia</p></div>
         <div class="filters-bar">
-          <select class="filter-input" id="filter-hist-rol" onchange="renderHistorial()">
-            <option value="">Todos los roles</option>
-            <option value="admin">Admin</option>
-            <option value="cosecha">Cosecha</option>
-            <option value="lider">Líder</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="pastor">Pastor</option>
-            <option value="analista">Analista</option>
-          </select>
           <select class="filter-input" id="filter-hist-accion" onchange="renderHistorial()">
             <option value="">Todas las acciones</option>
             <option value="registro">📝 Nuevos registros</option>
-            <option value="edicion">✏️ Ediciones</option>
             <option value="cambio_estado">🔄 Cambios de estado</option>
             <option value="cambio_asiste">✅ Asistencia célula</option>
-            <option value="login">🔑 Accesos</option>
-            <option value="nuevo_usuario">👤 Usuarios</option>
-            <option value="ajuste_usuario">⚙️ Edición usuarios</option>
-            <option value="vista">👁️ Consultas</option>
           </select>
-          <input type="text" class="filter-input" id="filter-hist-usuario" placeholder="🔍 Filtrar por usuario..." oninput="renderHistorial()" style="min-width:160px">
-          <input type="text" class="filter-input" id="filter-hist-persona" placeholder="🔍 Filtrar por persona..." oninput="renderHistorial()" style="min-width:160px">
+          <input type="text" class="filter-input" id="filter-hist-persona" placeholder="🔍 Buscar persona..." oninput="renderHistorial()" style="min-width:180px">
         </div>
         <div class="card">
           <div class="card-header">
@@ -2039,87 +2024,73 @@ async function renderHistorial() {
   const tableEl = document.getElementById('table-historial');
   const countEl = document.getElementById('historial-count');
   if (!tableEl) return;
-  tableEl.innerHTML = '<p style="opacity:0.5;padding:20px;text-align:center">⏳ Cargando historial...</p>';
+  tableEl.innerHTML = '<p style="opacity:0.5;padding:20px;text-align:center">⏳ Cargando...</p>';
 
-  const rolFil      = document.getElementById('filter-hist-rol')?.value    || '';
-  const accionFil   = document.getElementById('filter-hist-accion')?.value || '';
-  const usuarioFil  = (document.getElementById('filter-hist-usuario')?.value || '').toLowerCase().trim();
-  const personaFil  = (document.getElementById('filter-hist-persona')?.value || '').toLowerCase().trim();
-  const mostrarSensibles = false; // eliminaciones y contraseñas siempre ocultas
+  const accionFil  = document.getElementById('filter-hist-accion')?.value || '';
+  const personaFil = (document.getElementById('filter-hist-persona')?.value || '').toLowerCase().trim();
 
-  // Construir URL directamente para evitar problemas con el query builder
-  let url = `${SUPA_URL}/rest/v1/historial?select=*&order=fecha.desc`;
-  if (rolFil)    url += `&usuario_rol=eq.${encodeURIComponent(rolFil)}`;
-  if (accionFil) url += `&accion=eq.${encodeURIComponent(accionFil)}`;
+  // Solo cargar las 3 acciones relevantes
+  const accionesBase = ['registro','cambio_estado','cambio_asiste'];
+  const accionesFil  = accionFil ? [accionFil] : accionesBase;
+
+  let url = `${SUPA_URL}/rest/v1/historial?select=id,fecha,usuario_nombre,usuario_rol,accion,detalle,persona_nombre&order=fecha.desc&limit=200`;
+  // Filtrar por acción — si es una sola usamos eq, si son varias usamos in
+  if (accionesFil.length === 1) {
+    url += `&accion=eq.${encodeURIComponent(accionesFil[0])}`;
+  } else {
+    url += `&accion=in.(${accionesFil.map(a => encodeURIComponent(a)).join(',')})`;
+  }
 
   let data, error;
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const r = await fetch(url, { headers: SUPA_HEADERS, signal: controller.signal });
-    clearTimeout(timeout);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(url, { headers: SUPA_HEADERS, signal: ctrl.signal });
+    clearTimeout(t);
     const json = await r.json();
-    if (!r.ok) { error = json; }
-    else { data = Array.isArray(json) ? json : []; }
+    if (!r.ok) error = json;
+    else data = Array.isArray(json) ? json : [];
   } catch(e) {
-    error = e.name === 'AbortError' ? 'Tiempo de espera agotado (8s). Verifica tu conexión.' : (e.message || String(e));
+    error = e.name === 'AbortError' ? 'Sin respuesta (8s) — verifica conexión' : (e.message || String(e));
   }
 
   if (error || !data) {
-    const errMsg = typeof error === 'object' ? JSON.stringify(error, null, 2) : String(error);
-    tableEl.innerHTML = `
-      <div style="padding:24px">
-        <p style="color:#e74c3c;font-weight:700;margin-bottom:8px">❌ Error al cargar el historial</p>
-        <p style="font-size:13px;color:var(--text-light);margin-bottom:16px">
-          Lo más probable es que la tabla <code>historial</code> no exista en Supabase.<br>
-          Ve a <strong>Supabase → SQL Editor</strong> y ejecuta este SQL:
-        </p>
-        <pre style="background:#1a1208;color:#c9a84c;padding:16px;border-radius:10px;font-size:11px;overflow:auto;white-space:pre-wrap">CREATE TABLE IF NOT EXISTS historial (
-  id              bigserial PRIMARY KEY,
-  fecha           timestamptz DEFAULT now(),
-  usuario_nombre  text,
-  usuario_rol     text,
-  accion          text,
-  detalle         text,
-  persona_id      bigint REFERENCES personas(id) ON DELETE SET NULL,
-  persona_nombre  text
-);
-ALTER TABLE historial DISABLE ROW LEVEL SECURITY;</pre>
-        <p style="font-size:11px;color:var(--text-light);margin-top:12px">Error técnico: <code style="font-size:10px">${errMsg.substring(0,300)}</code></p>
-        <button class="btn btn-gold btn-sm" style="margin-top:12px" onclick="renderHistorial()">🔄 Reintentar</button>
-      </div>`;
+    tableEl.innerHTML = `<div style="padding:20px"><p style="color:#e74c3c;font-weight:700">❌ Error: ${typeof error==='object'?JSON.stringify(error):error}</p><button class="btn btn-gold btn-sm" style="margin-top:12px" onclick="renderHistorial()">🔄 Reintentar</button></div>`;
     if (countEl) countEl.textContent = 'Error';
     return;
   }
 
-  // Por defecto: ocultar eliminaciones y contraseñas. Mostrar todo lo demás.
-  if (!mostrarSensibles) rows = rows.filter(h => h.accion !== 'borrar' && h.accion !== 'password');
-  if (usuarioFil)  rows = rows.filter(h => (h.usuario_nombre||'').toLowerCase().includes(usuarioFil));
-  if (personaFil)  rows = rows.filter(h => (h.persona_nombre||'').toLowerCase().includes(personaFil));
+  // Filtro por persona en cliente
+  let rows = personaFil ? data.filter(h => (h.persona_nombre||'').toLowerCase().includes(personaFil)) : data;
 
-  if (countEl) countEl.textContent = `${rows.length} registro${rows.length!==1?'s':''}`;
+  if (countEl) countEl.textContent = `${rows.length} registro${rows.length !== 1 ? 's' : ''}`;
 
   if (!rows.length) {
-    tableEl.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>Sin actividad registrada con estos filtros</p></div>';
+    tableEl.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>Sin registros</p></div>';
     return;
   }
 
-  const rolColors = {admin:'#C9A84C',cosecha:'#27AE60',lider:'#2980B9',supervisor:'#8E44AD',pastor:'#2C3E50',analista:'#A78BFA'};
+  const icons = { registro:'📝', cambio_estado:'🔄', cambio_asiste:'✅' };
+  const labels = { registro:'Nuevo registro', cambio_estado:'Cambio estado', cambio_asiste:'Asistencia célula' };
+  const rolColors = { admin:'#C9A84C', cosecha:'#27AE60', lider:'#2980B9', supervisor:'#8E44AD', pastor:'#2C3E50' };
+
   tableEl.innerHTML = `<table><thead><tr>
-    <th>Fecha y hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th><th>Persona afectada</th>
+    <th>Fecha</th><th>Quién</th><th>Acción</th><th>Detalle</th><th>Persona</th>
   </tr></thead><tbody>
   ${rows.map(h => {
-    const fecha = new Date(h.fecha).toLocaleString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const fecha = new Date(h.fecha).toLocaleString('es-ES', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
     const rolColor = rolColors[h.usuario_rol] || '#888';
-    const accionLabel = ACCIONES_LABEL[h.accion] || h.accion;
-    const esImportante = ['registro','edicion','cambio_estado','cambio_asiste','borrar','nuevo_usuario'].includes(h.accion);
-    return `<tr style="${esImportante ? '' : 'opacity:0.75'}">
-      <td style="font-size:12px;white-space:nowrap">${fecha}</td>
-      <td><strong>${h.usuario_nombre||'—'}</strong></td>
-      <td><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:${rolColor}22;color:${rolColor};border:1px solid ${rolColor}44">${h.usuario_rol||'—'}</span></td>
-      <td style="font-size:12px;white-space:nowrap">${accionLabel}</td>
-      <td style="font-size:12px;max-width:260px;word-break:break-word">${h.detalle||'—'}</td>
-      <td style="font-size:12px;color:var(--text-light)">${h.persona_nombre||'—'}</td>
+    const icon = icons[h.accion] || '•';
+    const label = labels[h.accion] || h.accion;
+    return `<tr>
+      <td style="font-size:12px;white-space:nowrap;color:var(--text-light)">${fecha}</td>
+      <td>
+        <strong style="font-size:13px">${h.usuario_nombre||'—'}</strong><br>
+        <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:${rolColor}22;color:${rolColor}">${h.usuario_rol||''}</span>
+      </td>
+      <td style="font-size:12px;white-space:nowrap">${icon} ${label}</td>
+      <td style="font-size:12px;color:var(--text-light);max-width:220px;word-break:break-word">${h.detalle||'—'}</td>
+      <td style="font-size:13px;font-weight:600">${h.persona_nombre||'—'}</td>
     </tr>`;
   }).join('')}
   </tbody></table>`;
