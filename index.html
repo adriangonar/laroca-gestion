@@ -2304,6 +2304,11 @@ function renderDashCosecha() {
 function renderDashLider() {
   const _miLid = (currentUser.liderId||'').toLowerCase().trim();
   const mias = PERSONAS.filter(p=>(p.lider||'').toLowerCase().trim()===_miLid);
+  // Debug visible — mostrar qué lider_id tiene y cuántas personas encontró
+  if (!mias.length && PERSONAS.length > 0) {
+    const ejemplos = PERSONAS.slice(0,3).map(p=>`"${p.lider}"`).join(', ');
+    showToast(`ℹ️ liderId="${currentUser.liderId}" | Personas en BD: ${PERSONAS.length} con lider: ${ejemplos}`, 'info');
+  }
   const pendiente = mias.filter(p=>p.asisteCelula==='Pendiente').length;
   const si = mias.filter(p=>p.asisteCelula==='Sí').length;
   const no = mias.filter(p=>p.asisteCelula==='No').length;
@@ -2439,31 +2444,27 @@ async function guardarPersona() {
   CARTAS.push(carta);
 
   // ── Notificar al líder asignado ──
-  // Buscar el usuario cuyo liderId coincide con el nombre seleccionado
-  // También buscar en rolesExtra por si el rol principal no es 'lider'
-  const liderUser = USERS.find(u =>
-    (u.rol === 'lider' || (u.rolesExtra||[]).includes('lider')) && (
-      u.liderId === lider ||
-      u.liderId.toLowerCase().trim() === lider.toLowerCase().trim() ||
-      u.nombre  === lider ||
-      u.nombre.toLowerCase().trim() === lider.toLowerCase().trim()
-    )
-  );
+  // lider = nombre del grupo, ej: "Tae Jun"
+  // Usuario lider tiene lider_id = ese nombre guardado como liderId
+  const buscarLider = lider.toLowerCase().trim();
+  const liderUser = USERS.find(function(u) {
+    if (u.rol !== 'lider' && !(u.rolesExtra||[]).includes('lider')) return false;
+    return (u.liderId||'').toLowerCase().trim() === buscarLider
+        || (u.nombre||'').toLowerCase().trim() === buscarLider;
+  });
 
   if (liderUser) {
-    console.log('[Notif] Enviando notif a líder:', liderUser.nombre, '| id:', liderUser.id);
     await addNotif(
-      '🔔 Nueva persona asignada',
-      `${nueva.nombre} ${nueva.apellidos} — Decisión: ${nueva.decision}`,
+      '\uD83D\uDD14 Nueva persona asignada',
+      nueva.nombre + ' ' + nueva.apellidos + ' \u2014 ' + nueva.decision,
       liderUser.id
     );
+    showToast('\u2705 Guardado y notificado a ' + liderUser.nombre, 'ok');
   } else {
-    // Mostrar aviso visible en consola con todos los usuarios disponibles
-    console.warn('[Notif] ⚠️ No se encontró usuario líder para el nombre:', JSON.stringify(lider));
-    console.warn('[Notif] Usuarios disponibles con rol lider:', 
-      JSON.stringify(USERS.filter(u => u.rol==='lider' || (u.rolesExtra||[]).includes('lider'))
-        .map(u => ({id:u.id, nombre:u.nombre, liderId:u.liderId, rol:u.rol, rolesExtra:u.rolesExtra}))));
-    showToast(`⚠️ Persona guardada pero no se encontró el usuario líder "${lider}" para notificar`, 'warn');
+    const disponibles = USERS
+      .filter(function(u){ return u.rol==='lider' || (u.rolesExtra||[]).includes('lider'); })
+      .map(function(u){ return u.nombre + '(lider_id:"' + u.liderId + '")'; }).join(', ');
+    showToast('\u26A0\uFE0F Guardado. No se hall\u00f3 usuario del l\u00edder "' + lider + '". Disponibles: ' + disponibles, 'warn');
   }
 
   // Limpiar todos los campos del formulario
