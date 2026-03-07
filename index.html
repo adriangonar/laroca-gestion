@@ -2277,7 +2277,8 @@ function renderDashCosecha() {
 }
 
 function renderDashLider() {
-  const mias = PERSONAS.filter(p=>p.lider===currentUser.liderId);
+  const _miLid = (currentUser.liderId||'').toLowerCase().trim();
+  const mias = PERSONAS.filter(p=>(p.lider||'').toLowerCase().trim()===_miLid);
   const pendiente = mias.filter(p=>p.asisteCelula==='Pendiente').length;
   const si = mias.filter(p=>p.asisteCelula==='Sí').length;
   const no = mias.filter(p=>p.asisteCelula==='No').length;
@@ -2604,7 +2605,8 @@ function renderDecisiones(soloSemana) {
 // MIS PERSONAS (Líder)
 // ============================================================
 function renderMisPersonas() {
-  const mias = PERSONAS.filter(p=>p.lider===currentUser.liderId);
+  const _mLid = (currentUser.liderId||'').toLowerCase().trim();
+  const mias = PERSONAS.filter(p=>(p.lider||'').toLowerCase().trim()===_mLid);
   const pendiente = mias.filter(p=>p.asisteCelula==='Pendiente').length;
   const si = mias.filter(p=>p.asisteCelula==='Sí').length;
   const no = mias.filter(p=>p.asisteCelula==='No').length;
