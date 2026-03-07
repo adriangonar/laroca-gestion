@@ -1558,11 +1558,12 @@ function showLoadingOverlay(show) {
 
 function showToast(msg, tipo='info') {
   const t = document.createElement('div');
-  const bg = tipo==='error' ? '#c0392b' : tipo==='ok' ? '#2D6A4F' : '#C9A84C';
-  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${bg};color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:99998;box-shadow:0 4px 16px rgba(0,0,0,0.3);font-family:DM Sans,sans-serif;max-width:320px`;
+  const bg = tipo==='error' ? '#c0392b' : tipo==='ok' ? '#2D6A4F' : tipo==='warn' ? '#e67e22' : '#C9A84C';
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${bg};color:#fff;padding:14px 20px;border-radius:10px;font-size:13px;z-index:99998;box-shadow:0 4px 16px rgba(0,0,0,0.3);font-family:DM Sans,sans-serif;max-width:360px;cursor:pointer;line-height:1.4`;
   t.textContent = msg;
+  t.onclick = () => t.remove();
   document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 4000);
+  setTimeout(()=>{ if(t.parentNode) t.remove(); }, 7000);
 }
 
 // ============================================================
@@ -1748,12 +1749,34 @@ async function initApp() {
   // Mostrar panel si hay notificaciones sin leer al entrar
   if (getMyNotifs().filter(function(n){ return !n.leida; }).length > 0) openNotifPanel();
 
-  // Polling cada 10s — detecta notifs nuevas
+  // Polling cada 10s — detecta notifs nuevas y refresca personas para líderes
   setInterval(async function() {
+    // Notificaciones
     var antes = getMyNotifs().filter(function(n){ return !n.leida; }).length;
     await dbLoadNotifs();
     var ahora = getMyNotifs().filter(function(n){ return !n.leida; }).length;
     if (ahora > antes) openNotifPanel();
+
+    // Si es líder, refrescar sus personas desde Supabase
+    if (currentUser && currentUser.rol === 'lider') {
+      try {
+        const r = await fetch(SUPA_URL + '/rest/v1/personas?select=*&order=id', { headers: SUPA_HEADERS });
+        if (r.ok) {
+          const rows = await r.json();
+          if (Array.isArray(rows) && rows.length !== PERSONAS.length) {
+            PERSONAS = rows.map(r=>({
+              id:r.id, fecha:r.fecha, nombre:r.nombre, apellidos:r.apellidos||'',
+              telefono:r.telefono||'', email:r.email||'', edad:r.edad||0,
+              grupo:r.grupo||'', nacionalidad:r.nacionalidad||'',
+              direccion:r.direccion||'', invitadoPor:r.invitado_por||'',
+              decision:r.decision||'', lider:r.lider||'', motivo:r.motivo||'',
+              obs:r.obs||'', estado:r.estado||'Pendiente', asisteCelula:r.asiste_celula||'Pendiente'
+            }));
+            renderDashboard();
+          }
+        }
+      } catch(e) {}
+    }
   }, 10000);
 }
 
@@ -2398,6 +2421,10 @@ async function guardarPersona() {
   if (!nombre) { alert('Por favor ingresa el nombre'); return; }
   const lider = document.getElementById('reg-lider').value;
   if (!lider)  { alert('Por favor selecciona un líder'); return; }
+  try { await _guardarPersonaCore(nombre, apellidos, lider); } catch(e) { showToast('\u274C Error al guardar: ' + e.message, 'error'); console.error(e); }
+}
+
+async function _guardarPersonaCore(nombre, apellidos, lider) {
 
   const nueva = {
     id: nextPersonaId++,
@@ -2480,6 +2507,7 @@ async function guardarPersona() {
   });
 
   showToast(`✅ ${nombre} ${apellidos} registrado/a`, 'ok');
+  renderDashboard();
   showPage('dashboard');
 }
 
