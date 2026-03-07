@@ -936,6 +936,15 @@ function doLogin() {
       <!-- AJUSTES (Admin) -->
       <div class="page" id="page-ajustes">
         <div class="page-header"><h2>⚙️ Gestionar Opciones</h2><p>Añade o elimina opciones de los desplegables</p></div>
+
+        <!-- DIAGNÓSTICO SUPABASE -->
+        <div class="card" style="margin-bottom:20px;border:1px solid rgba(201,168,76,0.3)">
+          <div class="card-header"><span class="card-title">🔍 Diagnóstico Supabase</span>
+            <button class="btn btn-gold btn-sm" onclick="testSupabase()">▶ Ejecutar test</button>
+          </div>
+          <div class="card-body"><div id="diag-result" style="font-size:12px;font-family:monospace;white-space:pre-wrap;color:#444;line-height:1.6">Pulsa "Ejecutar test" para comprobar la conexión...</div></div>
+        </div>
+
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
 
           <!-- DECISIONES -->
@@ -3134,29 +3143,40 @@ async function dbLoadNotifs() {
 
 // ── Guardar en Supabase ──────────────────────────────────
 async function dbSaveNotif(notif, destinatarioId) {
+  const payload = { destinatario_id: destinatarioId, titulo: notif.titulo, cuerpo: notif.body, leida: false };
   try {
-    var r = await fetch(SUPA_URL + '/rest/v1/notificaciones', {
+    const r = await fetch(SUPA_URL + '/rest/v1/notificaciones', {
       method: 'POST',
       headers: SUPA_HEADERS,
-      body: JSON.stringify({ destinatario_id: destinatarioId, titulo: notif.titulo, cuerpo: notif.body, leida: false })
+      body: JSON.stringify(payload)
     });
-    if (r.ok) {
-      var data = await r.json();
-      var row  = Array.isArray(data) ? data[0] : data;
+    const txt = await r.text();
+    if (!r.ok) {
+      // Mostrar error visible en pantalla para diagnóstico
+      console.error('[Notif] Error al guardar:', r.status, txt);
+      showToast('❌ Error notif (' + r.status + '): ' + txt.substring(0, 120), 'error');
+      return false;
+    }
+    try {
+      const data = JSON.parse(txt);
+      const row  = Array.isArray(data) ? data[0] : data;
       if (row && row.id) {
-        var mem = (NOTIFS_POR_LIDER[destinatarioId] || []).find(function(n){ return n.id === notif.tempId; });
+        const mem = (NOTIFS_POR_LIDER[destinatarioId] || []).find(function(n){ return n.id === notif.tempId; });
         if (mem) { mem.id = row.id; delete mem.tempId; }
       }
-    }
+    } catch(e) {}
+    return true;
   } catch(e) {
-    console.warn('[Notif] dbSaveNotif error:', e);
+    console.error('[Notif] fetch error:', e);
+    showToast('❌ Error de red al guardar notificación', 'error');
+    return false;
   }
 }
 
 // ── Crear notificación ───────────────────────────────────
 async function addNotif(titulo, body, destinatarioId) {
-  var tempId = Date.now();
-  var notif  = {
+  const tempId = Date.now();
+  const notif  = {
     id: tempId, tempId: tempId,
     titulo: titulo, body: body,
     tiempo: new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
@@ -3164,8 +3184,8 @@ async function addNotif(titulo, body, destinatarioId) {
   };
   if (!NOTIFS_POR_LIDER[destinatarioId]) NOTIFS_POR_LIDER[destinatarioId] = [];
   NOTIFS_POR_LIDER[destinatarioId].unshift(notif);
-  // Guardar en DB (async, sin bloquear)
-  dbSaveNotif(notif, destinatarioId);
+  // Guardar en DB — con await para capturar errores
+  await dbSaveNotif(notif, destinatarioId);
   // Si es para el usuario actual → abrir panel
   if (currentUser && destinatarioId === currentUser.id) {
     updateNotifBadge();
@@ -3176,7 +3196,72 @@ async function addNotif(titulo, body, destinatarioId) {
 
 
 // ============================================================
-// SALA DE SALVACIÓN
+// DIAGNÓSTICO SUPABASE
+// ============================================================
+async function testSupabase() {
+  const el = document.getElementById('diag-result');
+  if (!el) return;
+  el.textContent = '⏳ Probando conexión...\n';
+
+  const log = (msg) => { el.textContent += msg + '\n'; };
+  const base = SUPA_URL + '/rest/v1/';
+
+  // 1. Test lectura personas
+  try {
+    const r = await fetch(base + 'personas?select=id,nombre&limit=3', { headers: SUPA_HEADERS });
+    const txt = await r.text();
+    log('personas GET → ' + r.status + ' ' + (r.ok ? '✅' : '❌') + ' — ' + txt.substring(0,80));
+  } catch(e) { log('personas GET → ❌ ERROR: ' + e.message); }
+
+  // 2. Test lectura usuarios
+  try {
+    const r = await fetch(base + 'usuarios?select=id,nombre,rol,lider_id&limit=10', { headers: SUPA_HEADERS });
+    const data = await r.json();
+    if (Array.isArray(data)) {
+      log('usuarios GET → ✅ ' + data.length + ' usuarios:');
+      data.forEach(u => log('  id:' + u.id + ' nombre:"' + u.nombre + '" rol:' + u.rol + ' lider_id:"' + (u.lider_id||'') + '"'));
+    } else {
+      log('usuarios GET → ❌ ' + JSON.stringify(data).substring(0,100));
+    }
+  } catch(e) { log('usuarios GET → ❌ ERROR: ' + e.message); }
+
+  // 3. Test lectura notificaciones
+  try {
+    const r = await fetch(base + 'notificaciones?select=*&limit=5&order=id.desc', { headers: SUPA_HEADERS });
+    const data = await r.json();
+    if (Array.isArray(data)) {
+      log('notificaciones GET → ✅ ' + data.length + ' registros');
+      if (data.length) data.forEach(n => log('  id:' + n.id + ' dest:' + n.destinatario_id + ' titulo:"' + n.titulo + '" leida:' + n.leida));
+    } else {
+      log('notificaciones GET → ❌ ' + JSON.stringify(data).substring(0,100));
+    }
+  } catch(e) { log('notificaciones GET → ❌ ERROR: ' + e.message); }
+
+  // 4. Test INSERT notificación de prueba
+  try {
+    const r = await fetch(base + 'notificaciones', {
+      method: 'POST', headers: SUPA_HEADERS,
+      body: JSON.stringify({ destinatario_id: currentUser.id, titulo: '🧪 Test diagnóstico', cuerpo: 'Prueba desde ajustes', leida: false })
+    });
+    const txt = await r.text();
+    log('notificaciones INSERT → ' + r.status + ' ' + (r.ok ? '✅' : '❌') + ' — ' + txt.substring(0,120));
+    if (r.ok) {
+      // Limpiar la notif de prueba
+      try {
+        const data = JSON.parse(txt);
+        const id = Array.isArray(data) ? data[0]?.id : data?.id;
+        if (id) {
+          await fetch(base + 'notificaciones?id=eq.' + id, { method: 'DELETE', headers: SUPA_HEADERS });
+          log('  → Notif de prueba eliminada ✅');
+        }
+      } catch(e) {}
+    }
+  } catch(e) { log('notificaciones INSERT → ❌ ERROR: ' + e.message); }
+
+  log('\n✅ Diagnóstico completado.');
+}
+
+
 // ============================================================
 let _salaCharts = {};
 
