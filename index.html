@@ -2235,10 +2235,12 @@ function closeSidebar() {
 async function sincronizarDatos() {
   const btn = document.getElementById('btn-sync');
   if (btn) { btn.textContent = '⏳ Cargando...'; btn.disabled = true; }
+  // Resetear arrays antes de recargar para evitar datos fantasma
+  PERSONAS = []; CARTAS = [];
   await dbLoadAll();
   renderDashboard();
   if (btn) { btn.textContent = '🔄 Sincronizar'; btn.disabled = false; }
-  showToast('✅ Datos sincronizados con Supabase', 'ok');
+  showToast('✅ Datos sincronizados — ' + PERSONAS.length + ' personas en BD', 'ok');
 }
 
 function renderDashboard() {
@@ -3248,12 +3250,18 @@ async function testSupabase() {
   const log = (msg) => { el.textContent += msg + '\n'; };
   const base = SUPA_URL + '/rest/v1/';
 
-  // 1. Test lectura personas
+  // 1. Test lectura personas — igual que dbLoadAll usa select=* sin limit
   try {
-    const r = await fetch(base + 'personas?select=id,nombre&limit=3', { headers: SUPA_HEADERS });
-    const txt = await r.text();
-    log('personas GET → ' + r.status + ' ' + (r.ok ? '✅' : '❌') + ' — ' + txt.substring(0,80));
-  } catch(e) { log('personas GET → ❌ ERROR: ' + e.message); }
+    const r = await fetch(base + 'personas?select=*&order=id', { headers: SUPA_HEADERS });
+    const data = await r.json();
+    if (Array.isArray(data)) {
+      log('personas → ✅ ' + data.length + ' filas en BD');
+      data.forEach(p => log('  id:' + p.id + ' nombre:"' + p.nombre + '" lider:"' + (p.lider||'') + '"'));
+      if (data.length === 0) log('  → TABLA VACÍA ✅');
+    } else {
+      log('personas → ❌ Respuesta inesperada: ' + JSON.stringify(data).substring(0,120));
+    }
+  } catch(e) { log('personas → ❌ ERROR: ' + e.message); }
 
   // 2. Test lectura usuarios
   try {
