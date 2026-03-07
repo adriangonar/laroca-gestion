@@ -1,4 +1,4 @@
-const CACHE = 'la-roca-v4';
+const CACHE = 'la-roca-v5';
 const ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

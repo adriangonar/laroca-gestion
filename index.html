@@ -47,7 +47,7 @@
     background: linear-gradient(160deg, #0d0900 0%, #1A1208 40%, #2a1e08 100%);
     position: relative;
     overflow: hidden;
-    padding: 20px;
+    padding: 16px;
   }
   #login-screen::before {
     content: '';
@@ -64,33 +64,33 @@
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(201,168,76,0.25);
     border-radius: 28px;
-    padding: 52px 44px 44px;
+    padding: 56px 48px 48px;
     width: 100%;
-    max-width: 460px;
+    max-width: 500px;
     position: relative;
     z-index: 1;
     box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.08) inset;
   }
   .login-logo {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 44px;
   }
   .login-logo .logo-img {
-    width: 110px;
-    height: 110px;
+    width: 130px;
+    height: 130px;
     object-fit: contain;
     display: block;
-    margin: 0 auto 20px;
-    filter: drop-shadow(0 4px 20px rgba(201,168,76,0.5));
+    margin: 0 auto 22px;
+    filter: drop-shadow(0 4px 24px rgba(201,168,76,0.6));
   }
   .login-logo h1 {
     font-family: 'Playfair Display', serif;
     color: var(--white);
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 700;
     letter-spacing: 0.3px;
     line-height: 1.2;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .login-logo p {
     color: var(--gold-light);
@@ -111,6 +111,7 @@
     letter-spacing: 1.5px;
     margin-bottom: 10px;
   }
+  /* Login inputs — fondo oscuro, texto blanco */
   .form-group input, .form-group select, .form-group textarea {
     width: 100%;
     padding: 15px 18px;
@@ -129,8 +130,55 @@
     background: rgba(201,168,76,0.08);
     box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
   }
-  .form-group input::placeholder { color: rgba(255,255,255,0.3); font-size: 15px; }
+  .form-group input::placeholder { color: rgba(255,255,255,0.35); font-size: 15px; }
   .form-group select option { background: #1A1208; color: #fff; }
+
+  /* ── Interior app: TODOS los inputs, selects y textareas → texto negro ── */
+  .main-content .form-group input,
+  .main-content .form-group select,
+  .main-content .form-group textarea,
+  .modal .form-group input,
+  .modal .form-group select,
+  .modal .form-group textarea,
+  #app input:not(#login-pass):not(#login-email),
+  #app select,
+  #app textarea {
+    background: #ffffff !important;
+    border-color: rgba(201,168,76,0.3);
+    color: #1A1208 !important;
+    -webkit-text-fill-color: #1A1208 !important;
+  }
+  .main-content .form-group input:focus,
+  .main-content .form-group select:focus,
+  .main-content .form-group textarea:focus,
+  .modal .form-group input:focus,
+  .modal .form-group select:focus,
+  .modal .form-group textarea:focus,
+  #app input:not(#login-pass):not(#login-email):focus,
+  #app select:focus,
+  #app textarea:focus {
+    border-color: var(--gold);
+    background: #ffffff !important;
+    color: #1A1208 !important;
+    -webkit-text-fill-color: #1A1208 !important;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+  }
+  /* Autocompletado del navegador — evita que el fondo azul tape el color */
+  .main-content .form-group input:-webkit-autofill,
+  .modal .form-group input:-webkit-autofill,
+  #app input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 50px #ffffff inset !important;
+    -webkit-text-fill-color: #1A1208 !important;
+  }
+  .main-content .form-group input::placeholder,
+  .main-content .form-group textarea::placeholder,
+  .modal .form-group input::placeholder,
+  .modal .form-group textarea::placeholder,
+  #app input::placeholder,
+  #app textarea::placeholder { color: rgba(26,18,8,0.38); }
+  .main-content .form-group select option,
+  .modal .form-group select option,
+  #app select option { background: #fff; color: #1A1208; }
   .btn-primary {
     width: 100%;
     padding: 17px;
@@ -276,14 +324,6 @@
   .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-light); line-height:1; padding:4px; }
   .modal-close:hover { color:var(--dark); }
   .modal .form-group label { color:var(--text-light); }
-  .modal .form-group input, .modal .form-group select, .modal .form-group textarea {
-    background:rgba(0,0,0,0.02); border-color:rgba(201,168,76,0.25); color:var(--text);
-  }
-  .modal .form-group input:focus, .modal .form-group select:focus, .modal .form-group textarea:focus {
-    border-color:var(--gold); background:var(--white);
-  }
-  .modal .form-group input::placeholder { color:var(--text-light); }
-  .modal .form-group select option { background:var(--white); color:var(--text); }
   .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; padding-top:20px; border-top:1px solid rgba(201,168,76,0.12); }
 
@@ -299,7 +339,7 @@
 
   /* FILTERS */
   .filters-bar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
-  .filter-input { padding:8px 14px; border:1px solid rgba(201,168,76,0.25); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; color:var(--text); background:var(--white); }
+  .filter-input { padding:8px 14px; border:1px solid rgba(201,168,76,0.25); border-radius:8px; font-size:14px; font-family:'DM Sans',sans-serif; color:#1A1208; background:var(--white); }
   .filter-input:focus { outline:none; border-color:var(--gold); }
 
   /* DETAIL VIEW */
@@ -374,23 +414,23 @@
 
   /* ── MOBILE BREAKPOINT ── */
   @media (max-width: 768px) {
-    /* Header */
-    .app-header { padding: 0 12px; height: 54px; }
-    .header-brand h2 { font-size: 14px; }
+    /* ── Header ── */
+    .app-header { padding: 0 12px; height: 54px; gap: 8px; }
+    .header-brand h2 { font-size: 13px; }
     .header-brand .logo-img { width: 28px; height: 28px; }
     .header-user { display: none; }
-    .role-badge { font-size: 10px; padding: 3px 8px; }
-    .btn-logout { font-size: 11px; padding: 4px 10px; }
+    .role-badge { font-size: 10px; padding: 2px 8px; }
+    .btn-logout { font-size: 11px; padding: 5px 10px; }
     .preview-selector { display: none !important; }
     .hamburger { display: flex; }
+    .header-right { gap: 6px; }
 
-    /* Sidebar — drawer */
+    /* ── Sidebar — drawer ── */
     .sidebar {
       position: fixed;
-      top: 54px;
-      left: 0;
+      top: 54px; left: 0;
       height: calc(100vh - 54px);
-      width: 240px;
+      width: 260px;
       z-index: 200;
       transform: translateX(-100%);
       transition: transform 0.28s cubic-bezier(.4,0,.2,1);
@@ -399,87 +439,168 @@
     }
     .sidebar.open { transform: translateX(0); }
 
-    /* Main content */
+    /* ── Main layout ── */
     .app-body { flex-direction: column; }
-    .main-content { padding: 14px; min-height: calc(100vh - 54px); }
+    .main-content { padding: 12px; min-height: calc(100vh - 54px); }
 
-    /* Page header */
-    .page-header { margin-bottom: 16px; }
+    /* ── Page header ── */
+    .page-header { margin-bottom: 14px; }
     .page-header h2 { font-size: 20px; }
-    .page-header p { font-size: 12px; }
+    .page-header p { font-size: 12px; margin-top: 2px; }
+    .page-header .btn { font-size: 12px; padding: 6px 12px; }
 
-    /* Stats grid */
-    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .stat-card { padding: 14px; }
-    .stat-card .sc-val { font-size: 24px; }
+    /* ── Stats grid ── */
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-card { padding: 14px 12px; border-radius: 12px; }
+    .stat-card .sc-val { font-size: 26px; }
     .stat-card .sc-icon { font-size: 18px; margin-bottom: 6px; }
+    .stat-card .sc-label { font-size: 11px; }
 
-    /* Cards */
-    .card { margin-bottom: 14px; border-radius: 10px; }
-    .card-header { padding: 12px 14px 10px; flex-wrap: wrap; gap: 8px; }
-    .card-title { font-size: 15px; }
+    /* ── Cards ── */
+    .card { margin-bottom: 12px; border-radius: 12px; }
+    .card-header {
+      padding: 12px 14px 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .card-title { font-size: 14px; }
     .card-body { padding: 0; }
 
-    /* Tables — scroll */
-    .card-body table, table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 12px; }
-    th { font-size: 10px; padding: 8px 10px; }
+    /* ── Tables ── */
+    .card-body table, table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+    th { font-size: 10px; padding: 8px 10px; white-space: nowrap; }
     td { padding: 9px 10px; font-size: 12px; }
+    /* Hide less important columns on mobile */
+    table .col-hide-mobile { display: none; }
 
-    /* Forms */
-    .form-row { grid-template-columns: 1fr; }
-    .detail-grid { grid-template-columns: 1fr; }
-    .filters-bar { flex-direction: column; gap: 8px; }
-    .filter-input { font-size: 13px; padding: 8px 10px; width: 100% !important; max-width: 100% !important; box-sizing: border-box; }
+    /* ── Filters ── */
+    .filters-bar {
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .filter-input, .filters-bar select, .filters-bar input {
+      font-size: 13px;
+      padding: 9px 12px;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+    }
 
-    /* Buttons */
+    /* ── Forms ── */
+    .form-row { grid-template-columns: 1fr; gap: 12px; }
+    .detail-grid { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Registro form fields full width */
+    #page-nuevo-registro input,
+    #page-nuevo-registro select,
+    #page-nuevo-registro textarea {
+      font-size: 16px !important; /* prevents iOS zoom */
+    }
+    #reg-lider, #reg-decision, #reg-motivo,
+    #reg-grupo, #reg-nacionalidad { width: 100%; }
+
+    /* ── Buttons ── */
     .btn { font-size: 12px; padding: 7px 12px; }
-    .btn-sm { font-size: 11px; padding: 4px 8px; }
+    .btn-sm { font-size: 11px; padding: 4px 9px; }
+    .btn-gold { font-size: 12px; }
 
-    /* Modals */
-    .modal-overlay .modal { width: 96vw; max-width: 96vw; margin: 4px; max-height: 92vh; overflow-y: auto; }
-    .modal-footer { flex-wrap: wrap; gap: 8px; }
+    /* Action buttons in tables — icon only on mobile */
+    .action-btns .btn-sm { padding: 4px 7px; }
 
-    /* Tabs */
-    .tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-    .tab { font-size: 12px; padding: 8px 12px; }
+    /* ── Modals ── */
+    .modal-overlay .modal {
+      width: 96vw;
+      max-width: 96vw;
+      margin: 4px auto;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 16px;
+    }
+    .modal-body { padding: 16px; }
+    .modal-footer {
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 16px;
+    }
+    .modal-footer .btn { flex: 1; min-width: 120px; text-align: center; justify-content: center; }
+    .modal h3 { font-size: 18px; }
 
-    /* Preview banner */
+    /* ── Tabs ── */
+    .tabs {
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+      gap: 4px;
+    }
+    .tab { font-size: 12px; padding: 7px 12px; }
+
+    /* ── Notification panel ── */
+    .notif-panel { width: 92vw; }
+    .notif-panel.open { transform: translateX(0); right: 0; left: auto; }
+
+    /* ── Preview banner ── */
     .preview-banner { font-size: 11px; padding: 6px 12px; flex-wrap: wrap; gap: 6px; }
 
-    /* Notification panel */
-    .notif-panel { width: 90vw; right: -95vw; }
-    .notif-panel.open { right: 0; }
-
-    /* Historial table */
+    /* ── Historial ── */
     #table-historial table td:nth-child(5),
-    #table-historial table th:nth-child(5) { max-width: 140px; }
+    #table-historial table th:nth-child(5) { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Login */
-    .login-card { padding: 36px 24px 32px; border-radius: 22px; }
-    .login-logo .logo-img { width: 90px; height: 90px; }
-    .login-logo h1 { font-size: 22px; }
-    .btn-primary { font-size: 16px; padding: 16px; }
+    /* ── Login ── */
+    .login-card {
+      padding: 40px 24px 34px;
+      border-radius: 24px;
+      width: calc(100vw - 24px);
+      max-width: 100%;
+    }
+    .login-logo .logo-img { width: 100px; height: 100px; }
+    .login-logo h1 { font-size: 24px; }
+    .login-logo { margin-bottom: 32px; }
+    .btn-primary { font-size: 17px; padding: 17px; }
 
-    /* Detail grid */
+    /* ── Detail fields ── */
     .detail-field label { font-size: 10px; }
     .detail-field span { font-size: 13px; }
 
-    /* History items */
+    /* ── History items ── */
     .history-item { padding: 8px 10px; }
     .history-text { font-size: 12px; }
     .history-meta { font-size: 10px; }
 
-    /* Charts */
-    canvas { max-height: 200px; }
+    /* ── Charts ── */
+    canvas { max-height: 220px; }
 
-    /* Nuevo registro wide selectors */
-    #reg-lider, #reg-decision, #reg-motivo, #reg-grupo, #reg-nacionalidad { width: 100%; }
+    /* ── Gestión Usuarios form ── */
+    .usr-form { padding: 14px 14px 18px; }
+    .usr-input { max-width: 100% !important; }
+
+    /* ── Dashboard quick-actions if any ── */
+    .dash-actions { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── Sala de salvación ── */
+    #sala-salvacion-chart-container { height: 200px !important; }
   }
 
+  /* ── TINY SCREENS ── */
   @media (max-width: 400px) {
     .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stat-card .sc-val { font-size: 20px; }
+    .stat-card .sc-val { font-size: 22px; }
     .header-brand h2 { display: none; }
+    .main-content { padding: 10px; }
+    .modal-overlay .modal { width: 99vw; max-width: 99vw; margin: 0; border-radius: 12px 12px 0 0; position: fixed; bottom: 0; top: auto; }
+    .login-card { padding: 32px 16px 26px; width: calc(100vw - 16px); }
+    .login-logo h1 { font-size: 20px; }
   }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -540,6 +661,11 @@ function doLogin() {
         🔔
         <span class="notif-badge" id="notif-count" style="display:none">0</span>
       </button>
+      <!-- Selector de vista múltiple (visible cuando el usuario tiene >1 rol, nunca admin) -->
+      <div id="multi-rol-selector" style="display:none;align-items:center;gap:8px">
+        <span style="font-size:11px;color:rgba(255,255,255,0.5)">Vista:</span>
+        <select class="preview-select" onchange="cambiarVistaRol(this.value)" id="multi-rol-select"></select>
+      </div>
       <div id="preview-selector" style="display:none;align-items:center;gap:8px">
         <span style="font-size:11px;color:rgba(255,255,255,0.5)">Vista previa:</span>
         <select class="preview-select" onchange="setPreviewMode(this.value)" id="preview-select">
@@ -817,17 +943,27 @@ function doLogin() {
             <option value="lider">Líder</option>
             <option value="supervisor">Supervisor</option>
             <option value="pastor">Pastor</option>
+            <option value="analista">Analista</option>
           </select>
           <select class="filter-input" id="filter-hist-accion" onchange="renderHistorial()">
             <option value="">Todas las acciones</option>
-            <option value="login">Accesos</option>
-            <option value="registro">Nuevos registros</option>
-            <option value="cambio_estado">Cambios de estado</option>
-            <option value="cambio_asiste">Asistencia célula</option>
-            <option value="nuevo_usuario">Usuarios</option>
-            <option value="borrar">Eliminaciones</option>
-            <option value="password">Contraseñas</option>
+            <option value="registro">📝 Nuevos registros</option>
+            <option value="edicion">✏️ Ediciones</option>
+            <option value="cambio_estado">🔄 Cambios de estado</option>
+            <option value="cambio_asiste">✅ Asistencia célula</option>
+            <option value="login">🔑 Accesos</option>
+            <option value="nuevo_usuario">👤 Usuarios</option>
+            <option value="ajuste_usuario">⚙️ Edición usuarios</option>
+            <option value="borrar">🗑️ Eliminaciones</option>
+            <option value="password">🔑 Contraseñas</option>
+            <option value="vista">👁️ Consultas</option>
           </select>
+          <input type="text" class="filter-input" id="filter-hist-usuario" placeholder="🔍 Filtrar por usuario..." oninput="renderHistorial()" style="min-width:160px">
+          <input type="text" class="filter-input" id="filter-hist-persona" placeholder="🔍 Filtrar por persona..." oninput="renderHistorial()" style="min-width:160px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-light);cursor:pointer;white-space:nowrap">
+            <input type="checkbox" id="filter-hist-vistas" onchange="renderHistorial()" style="width:14px;height:14px">
+            Mostrar consultas
+          </label>
         </div>
         <div class="card">
           <div class="card-header">
@@ -975,6 +1111,20 @@ function doLogin() {
 </div>
 
 <!-- MODAL cambiar contraseña -->
+<div class="modal-overlay" id="modal-roles-extra">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3 class="modal-title">🎭 Gestionar roles del usuario</h3>
+      <button class="modal-close" onclick="closeModal('modal-roles-extra')">✕</button>
+    </div>
+    <div style="padding:20px" id="modal-roles-extra-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-roles-extra')">Cancelar</button>
+      <button class="btn btn-gold" id="modal-roles-extra-btn">💾 Guardar roles</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-cambiar-pass" style="z-index:9999">
   <div class="modal" style="max-width:380px">
     <div class="modal-header"><h3 class="modal-title">🔑 Cambiar contraseña</h3></div>
@@ -1130,7 +1280,7 @@ async function dbLoadAll() {
     if (uRes.data && uRes.data.length) {
       USERS = uRes.data.map(r=>({
         id:r.id, email:r.email, pass:r.pass, nombre:r.nombre,
-        rol:r.rol, liderId:r.lider_id||'', mustChangePass:r.must_change_pass
+        rol:r.rol, rolesExtra:r.roles_extra||[], liderId:r.lider_id||'', mustChangePass:r.must_change_pass
       }));
       nextUserId = Math.max(...USERS.map(u=>u.id)) + 1;
     }
@@ -1175,8 +1325,13 @@ async function dbSavePersona(p) {
   if (p.id && p._fromDB) {
     await sb.from('personas').update(row).eq('id', p.id);
   } else {
-    const {data} = await sb.from('personas').insert(row).then(r=>r);
-    if (data) p.id = data.id;
+    const res = await sb.from('personas').insert(row).then(r=>r);
+    // Supabase devuelve data como array o como objeto — manejar ambos
+    if (res.data) {
+      const real = Array.isArray(res.data) ? res.data[0] : res.data;
+      if (real && real.id) p.id = real.id;
+    }
+    if (res.error) console.warn('[DB] dbSavePersona insert error:', res.error);
   }
   p._fromDB = true;
 }
@@ -1215,7 +1370,7 @@ async function dbDeleteCarta(id) {
 
 // --- USUARIOS ---
 async function dbSaveUsuario(u) {
-  const row = {email:u.email, pass:u.pass, nombre:u.nombre, rol:u.rol, lider_id:u.liderId||'', must_change_pass:u.mustChangePass};
+  const row = {email:u.email, pass:u.pass, nombre:u.nombre, rol:u.rol, roles_extra:u.rolesExtra||[], lider_id:u.liderId||'', must_change_pass:u.mustChangePass};
   if (u._fromDB) {
     await sb.from('usuarios').update(row).eq('id', u.id);
   } else {
@@ -1261,7 +1416,7 @@ async function logHistorial(accion, detalle, personaId=null, personaNombre='') {
     const row = {
       fecha:          new Date().toISOString(),
       usuario_nombre: currentUser.nombre,
-      usuario_rol:    currentUser.rol,
+      usuario_rol:    vistaActualRol || currentUser.rol,
       accion,
       detalle,
       persona_id:     personaId   || null,
@@ -1270,6 +1425,83 @@ async function logHistorial(accion, detalle, personaId=null, personaNombre='') {
     const res = await sb.from('historial').insert(row).then(r=>r);
     if (res.error) console.warn('Historial insert error:', res.error);
   } catch(e) { console.warn('Historial error:', e); }
+}
+
+// ============================================================
+// MULTI-ROL — vista activa para usuarios con varios roles
+// ============================================================
+// vistaActualRol: el rol que se está usando ahora (puede diferir del rol base)
+let vistaActualRol = null;
+
+function getTodosRolesUsuario(user) {
+  // Devuelve todos los roles del usuario, excluye 'admin' siempre
+  const todos = [user.rol, ...(user.rolesExtra || [])].filter(r => r && r !== 'admin');
+  return [...new Set(todos)]; // sin duplicados
+}
+
+function setupMultiRolSelector() {
+  const user = currentUser;
+  if (!user) return;
+  const roles = getTodosRolesUsuario(user);
+  const selector = document.getElementById('multi-rol-selector');
+  const sel = document.getElementById('multi-rol-select');
+  if (!selector || !sel) return;
+
+  if (roles.length <= 1) {
+    // Un solo rol — no mostrar selector
+    selector.style.display = 'none';
+    vistaActualRol = user.rol;
+    return;
+  }
+
+  // Múltiples roles — mostrar selector
+  const rolLabels = {cosecha:'🌾 Cosecha', lider:'👤 Líder', supervisor:'🧭 Supervisor', pastor:'🙏 Pastor', analista:'🔍 Analista'};
+  sel.innerHTML = roles.map(r => `<option value="${r}">${rolLabels[r] || r}</option>`).join('');
+  // Restaurar vista guardada si existe
+  const saved = localStorage.getItem('la_roca_vista_' + user.id);
+  if (saved && roles.includes(saved)) {
+    sel.value = saved;
+    vistaActualRol = saved;
+  } else {
+    sel.value = roles[0];
+    vistaActualRol = roles[0];
+  }
+  selector.style.display = 'flex';
+}
+
+function cambiarVistaRol(nuevoRol) {
+  if (!currentUser || !nuevoRol) return;
+  vistaActualRol = nuevoRol;
+  localStorage.setItem('la_roca_vista_' + currentUser.id, nuevoRol);
+  // Actualizar badge de rol en header
+  const rolLabels = {cosecha:'Cosecha', lider:'Líder', supervisor:'Supervisor', pastor:'Pastor', analista:'Analista'};
+  const rb = document.getElementById('role-badge');
+  if (rb) { rb.textContent = rolLabels[nuevoRol] || nuevoRol; rb.className = 'role-badge role-' + nuevoRol; }
+  // Registrar cambio de vista en historial
+  logHistorial('cambio_vista', `Cambió vista activa a: ${rolLabels[nuevoRol] || nuevoRol}`);
+  // Re-inicializar navegación con nuevo rol
+  aplicarNavegacionPorRol(nuevoRol);
+  showPage('dashboard');
+}
+
+function getRolActivo() {
+  // Devuelve el rol que se usa actualmente para navegación/permisos
+  if (!currentUser) return '';
+  if (currentUser.rol === 'admin' && !vistaActualRol) return 'admin';
+  return vistaActualRol || currentUser.rol;
+}
+
+function aplicarNavegacionPorRol(rol) {
+  const show = (id, cond) => { const el=document.getElementById(id); if(el) el.style.display=cond?'block':'none'; };
+  const isAnalista = rol === 'analista';
+  show('nav-personas',        rol==='cosecha'||rol==='admin'||isAnalista);
+  show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor'||isAnalista);
+  const cartasItem = document.getElementById('nav-item-cartas');
+  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha'||isAnalista) ? 'block' : 'none';
+  show('nav-lider-asig',      rol==='lider');
+  show('nav-supervisor-asig', rol==='supervisor');
+  show('nav-pastores',        rol==='pastor'||rol==='admin'||isAnalista);
+  show('nav-ajustes',         rol==='admin');
 }
 
 // --- OPCIONES ---
@@ -1377,7 +1609,7 @@ async function doLoginFull() {
   currentUser = user;
   // Guardar sesión persistente (solo se borra al pulsar "Salir")
   localStorage.setItem('la_roca_session', JSON.stringify({ id: user.id, pass: user.pass }));
-  logHistorial('login', `Acceso al sistema desde ${new Date().toLocaleString('es-ES')}`);
+  await logHistorial('login', `Acceso al sistema desde ${new Date().toLocaleString('es-ES')}`);
   document.getElementById('login-error').style.display='none';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
@@ -1430,24 +1662,23 @@ async function initApp() {
   const rol = currentUser.rol;
   const rolLabels = {admin:'Administrador',cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor_tab:'Pastor',pastor:'Pastor',analista:'Analista'};
   document.getElementById('header-user').textContent = currentUser.nombre;
+
+  // Configurar multi-rol (usuarios con varios roles)
+  vistaActualRol = null;
+  setupMultiRolSelector();
+
+  // Rol activo para navegación (puede ser diferente del rol base si hay multi-rol)
+  const rolActivo = getRolActivo();
+
+  // Badge de rol en header
   const rb = document.getElementById('role-badge');
-  rb.textContent = rolLabels[rol] || rol;
-  rb.className = 'role-badge role-'+rol;
+  rb.textContent = rolLabels[rolActivo] || rolActivo;
+  rb.className = 'role-badge role-'+rolActivo;
 
-  // Show/hide nav sections
-  const show = (id, cond) => { const el=document.getElementById(id); if(el) el.style.display=cond?'block':'none'; };
-  const isAnalista = rol === 'analista';
-  show('nav-personas',        rol==='cosecha'||rol==='admin'||isAnalista);
-  show('nav-actividad',       rol==='cosecha'||rol==='admin'||rol==='pastor'||isAnalista);
-  // Cartas only for admin/pastor/cosecha/analista
-  const cartasItem = document.getElementById('nav-item-cartas');
-  if (cartasItem) cartasItem.style.display = (rol==='admin'||rol==='pastor'||rol==='cosecha'||isAnalista) ? 'block' : 'none';
-  show('nav-lider-asig',      rol==='lider');
-  show('nav-supervisor-asig', rol==='supervisor');
-  show('nav-pastores',        rol==='pastor'||rol==='admin'||isAnalista);
-  show('nav-ajustes',         rol==='admin');
+  // Aplicar navegación según rol activo
+  aplicarNavegacionPorRol(rolActivo);
 
-  // Preview mode selector — only visible for admin
+  // Preview mode selector — only visible for admin (sin multi-rol)
   const previewSel = document.getElementById('preview-selector');
   if (previewSel) previewSel.style.display = (rol==='admin') ? 'flex' : 'none';
   document.getElementById('preview-banner').style.display = 'none';
@@ -1473,16 +1704,19 @@ async function initApp() {
   // Cargar notificaciones y pedir permiso push
   await dbLoadNotifs();
   requestPushPermission();
-  // Polling cada 30s para recibir notificaciones nuevas en tiempo real
+
+  // Polling cada 10s — detecta notifs nuevas en tiempo real
   setInterval(async () => {
-    const antes = getMyNotifs().filter(n=>n.nueva).length;
+    const antesNuevas = getMyNotifs().filter(n => n.nueva).length;
     await dbLoadNotifs();
-    const despues = getMyNotifs().filter(n=>n.nueva).length;
-    if (despues > antes) {
-      const notif = getMyNotifs().find(n=>n.nueva);
-      if (notif) pushNativeNotif(notif.titulo, notif.body);
+    const ahoraNuevas = getMyNotifs().filter(n => n.nueva).length;
+    if (ahoraNuevas > antesNuevas) {
+      // Nuevas notificaciones detectadas — mostrar panel y push
+      const nuevas = getMyNotifs().filter(n => n.nueva);
+      nuevas.forEach(n => pushNativeNotif(n.titulo, n.body));
+      mostrarPanelNotif();
     }
-  }, 30000);
+  }, 10000);
 }
 
 // ============================================================
@@ -1774,10 +2008,21 @@ async function removeOpcion(tipo, idx) {
 // HISTORIAL
 // ============================================================
 const ACCIONES_LABEL = {
-  login:'🔑 Acceso', registro:'📝 Nuevo registro', cambio_estado:'🔄 Cambio estado',
-  cambio_asiste:'✅ Asistencia célula', nuevo_usuario:'👤 Nuevo usuario',
-  borrar:'🗑 Eliminación', password:'🔑 Contraseña', vista:'👁 Vista',
-  supervisor_cfg:'🧭 Configuración supervisor', opcion:'⚙️ Gestión opciones'
+  login:          '🔑 Acceso al sistema',
+  registro:       '📝 Nuevo registro',
+  edicion:        '✏️ Edición persona',
+  cambio_estado:  '🔄 Cambio de estado',
+  cambio_asiste:  '✅ Asistencia célula',
+  nuevo_usuario:  '👤 Nuevo usuario',
+  ajuste_usuario: '⚙️ Edición usuario',
+  borrar:         '🗑️ Eliminación',
+  password:       '🔑 Contraseña',
+  vista:          '👁️ Sección vista',
+  cambio_vista:   '🔀 Cambio de vista',
+  supervisor_cfg: '🧭 Config. supervisor',
+  opcion:         '⚙️ Gestión opciones',
+  carta:          '✉️ Carta generada',
+  notif:          '🔔 Notificación enviada'
 };
 
 async function renderHistorial() {
@@ -1786,38 +2031,51 @@ async function renderHistorial() {
   if (!tableEl) return;
   tableEl.innerHTML = '<p style="opacity:0.5;padding:20px;text-align:center">Cargando...</p>';
 
-  const rolFil    = document.getElementById('filter-hist-rol')?.value    || '';
-  const accionFil = document.getElementById('filter-hist-accion')?.value || '';
+  const rolFil      = document.getElementById('filter-hist-rol')?.value    || '';
+  const accionFil   = document.getElementById('filter-hist-accion')?.value || '';
+  const usuarioFil  = (document.getElementById('filter-hist-usuario')?.value || '').toLowerCase().trim();
+  const personaFil  = (document.getElementById('filter-hist-persona')?.value || '').toLowerCase().trim();
+  const mostrarVistas = document.getElementById('filter-hist-vistas')?.checked || false;
 
-  let q = sb.from('historial').select('*').order('fecha', {ascending:false});
+  let q = sb.from('historial').select('*').order('fecha', {ascending: false});
   if (rolFil)    q = q.eq('usuario_rol', rolFil);
   if (accionFil) q = q.eq('accion', accionFil);
 
   const {data, error} = await q.get();
-  if (error || !data) { tableEl.innerHTML = '<p style="color:red;padding:20px">Error cargando historial</p>'; return; }
+  if (error || !data) {
+    tableEl.innerHTML = '<p style="color:red;padding:20px">Error cargando historial. Verifica que la tabla existe en Supabase.</p>';
+    return;
+  }
 
-  if (countEl) countEl.textContent = `${data.length} registro${data.length!==1?'s':''}`;
+  // Filtros en cliente (usuario, persona, y ocultar consultas si no marcado)
+  let rows = data;
+  if (!mostrarVistas) rows = rows.filter(h => h.accion !== 'vista' && h.accion !== 'cambio_vista');
+  if (usuarioFil)     rows = rows.filter(h => (h.usuario_nombre||'').toLowerCase().includes(usuarioFil));
+  if (personaFil)     rows = rows.filter(h => (h.persona_nombre||'').toLowerCase().includes(personaFil));
 
-  if (!data.length) {
-    tableEl.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>Sin actividad registrada aún</p></div>';
+  if (countEl) countEl.textContent = `${rows.length} registro${rows.length!==1?'s':''}`;
+
+  if (!rows.length) {
+    tableEl.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>Sin actividad registrada con estos filtros</p></div>';
     return;
   }
 
   const rolColors = {admin:'#C9A84C',cosecha:'#27AE60',lider:'#2980B9',supervisor:'#8E44AD',pastor:'#2C3E50',analista:'#A78BFA'};
   tableEl.innerHTML = `<table><thead><tr>
-    <th>Fecha y hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th><th>Persona</th>
+    <th>Fecha y hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th><th>Persona afectada</th>
   </tr></thead><tbody>
-  ${data.map(h => {
+  ${rows.map(h => {
     const fecha = new Date(h.fecha).toLocaleString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    const rolColor = rolColors[h.usuario_rol] || '#666';
+    const rolColor = rolColors[h.usuario_rol] || '#888';
     const accionLabel = ACCIONES_LABEL[h.accion] || h.accion;
-    return `<tr>
+    const esImportante = ['registro','edicion','cambio_estado','cambio_asiste','borrar','nuevo_usuario'].includes(h.accion);
+    return `<tr style="${esImportante ? '' : 'opacity:0.75'}">
       <td style="font-size:12px;white-space:nowrap">${fecha}</td>
-      <td><strong>${h.usuario_nombre}</strong></td>
-      <td><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:${rolColor}22;color:${rolColor};border:1px solid ${rolColor}44">${h.usuario_rol}</span></td>
-      <td style="font-size:12px">${accionLabel}</td>
-      <td style="font-size:12px;max-width:300px">${h.detalle||'—'}</td>
-      <td style="font-size:12px">${h.persona_nombre||'—'}</td>
+      <td><strong>${h.usuario_nombre||'—'}</strong></td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:${rolColor}22;color:${rolColor};border:1px solid ${rolColor}44">${h.usuario_rol||'—'}</span></td>
+      <td style="font-size:12px;white-space:nowrap">${accionLabel}</td>
+      <td style="font-size:12px;max-width:260px;word-break:break-word">${h.detalle||'—'}</td>
+      <td style="font-size:12px;color:var(--text-light)">${h.persona_nombre||'—'}</td>
     </tr>`;
   }).join('')}
   </tbody></table>`;
@@ -2510,6 +2768,10 @@ function switchTrimTab(num) {
 function openPersonaModal(id) {
   const p = PERSONAS.find(x=>x.id===id);
   if (!p) return;
+
+  // Registrar que se ha consultado esta persona
+  logHistorial('vista', `Consultó ficha de: ${p.nombre} ${p.apellidos}`, id, `${p.nombre} ${p.apellidos}`);
+
   document.getElementById('modal-persona-title').textContent = `${p.nombre} ${p.apellidos}`;
   const rol = currentUser.rol;
   const isAdmin = rol === 'admin';
@@ -2585,7 +2847,7 @@ async function cambiarAsisteCelula(id, valor) {
   if (!p) return;
   p.asisteCelula = valor;
   await dbUpdatePersonaField(id, {asisteCelula: valor});
-  logHistorial('cambio_asiste', `Asistencia célula → "${valor}"`, id, `${p.nombre} ${p.apellidos}`);
+  await logHistorial('cambio_asiste', `Asistencia célula → "${valor}"`, id, `${p.nombre} ${p.apellidos}`);
   if (!HISTORIALES[id]) HISTORIALES[id]=[];
   const texto = valor==='Sí' ? `✅ Confirmado: SÍ asiste a célula` : valor==='No' ? `❌ Confirmado: NO asiste a célula` : `⏳ Estado restablecido a Pendiente`;
   HISTORIALES[id].push({texto, fecha:new Date().toLocaleString('es'), estado:valor});
@@ -2604,7 +2866,7 @@ async function cambiarEstadoCosecha(id) {
   if (!p) return;
   p.estado = sel.value;
   await dbUpdatePersonaField(id, {estado: sel.value});
-  logHistorial('cambio_estado', `Estado → "${sel.value}"`, id, `${p.nombre} ${p.apellidos}`);
+  await logHistorial('cambio_estado', `Estado → "${sel.value}"`, id, `${p.nombre} ${p.apellidos}`);
   if (!HISTORIALES[id]) HISTORIALES[id]=[];
   HISTORIALES[id].push({texto:`Estado actualizado a "${sel.value}" por ${currentUser.nombre}`, fecha:new Date().toLocaleString('es'), estado:sel.value});
   closeModal('modal-persona');
@@ -2616,9 +2878,34 @@ async function cambiarEstadoCosecha(id) {
 // NOTIFICATIONS — sistema completo con Supabase + push nativo
 // ============================================================
 
-// Cargar notificaciones desde Supabase para el usuario actual
+// ── Push nativa — usa SW registration para funcionar en background ──
+async function pushNativeNotif(titulo, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        // Esto funciona aunque la app esté minimizada o cerrada
+        await reg.showNotification(titulo, {
+          body,
+          icon:    './icon-192.png',
+          badge:   './icon-192.png',
+          vibrate: [200, 100, 200],
+          tag:     'la-roca-notif-' + Date.now(),
+          requireInteraction: true  // queda visible hasta que el usuario la toque
+        });
+        return;
+      }
+    }
+    // Fallback
+    new Notification(titulo, { body, icon: './icon-192.png' });
+  } catch(e) { console.warn('[Push]', e); }
+}
+
+// ── Cargar notifs desde Supabase ──
 async function dbLoadNotifs() {
-  if (!currentUser) return;
+  if (!currentUser) return 0;
   try {
     const res = await sb.from('notificaciones')
       .select('*')
@@ -2634,17 +2921,17 @@ async function dbLoadNotifs() {
         nueva:  !r.leida,
         leida:  r.leida
       }));
-      // Merge: DB wins for persisted items, keep in-memory-only items too
-      const inMem = NOTIFS_POR_LIDER[currentUser.id] || [];
-      const dbIds = new Set(fromDB.map(n => n.id));
-      const memOnly = inMem.filter(n => !dbIds.has(n.id));
+      const inMem  = NOTIFS_POR_LIDER[currentUser.id] || [];
+      const dbIds  = new Set(fromDB.map(n => n.id));
+      const memOnly = inMem.filter(n => typeof n.id === 'number' && n.id > 1e12 && !dbIds.has(n.id)); // solo in-memory temporales
       NOTIFS_POR_LIDER[currentUser.id] = [...memOnly, ...fromDB];
       updateNotifBadge();
+      return fromDB.filter(n => n.nueva).length;
     }
   } catch(e) {
-    // Tabla no existe aún — no sobreescribir memoria
-    console.warn('[Notif] dbLoadNotifs error (tabla puede no existir):', e.message||e);
+    console.warn('[Notif] dbLoadNotifs error:', e.message || e);
   }
+  return 0;
 }
 
 async function dbSaveNotif(notif, destinatarioId) {
@@ -2655,17 +2942,16 @@ async function dbSaveNotif(notif, destinatarioId) {
       cuerpo: notif.body,
       leida:  false,
       fecha:  new Date().toISOString()
-    }).then(r=>r);
+    }).then(r => r);
     if (res.error) console.warn('[Notif] dbSaveNotif error:', res.error);
     else if (res.data) {
-      // Actualizar id en memoria con el id real de Supabase
       const real = Array.isArray(res.data) ? res.data[0] : res.data;
       if (real && real.id) {
-        const mem = (NOTIFS_POR_LIDER[destinatarioId]||[]).find(n=>n.id===notif.id);
+        const mem = (NOTIFS_POR_LIDER[destinatarioId] || []).find(n => n.id === notif.id);
         if (mem) mem.id = real.id;
       }
     }
-  } catch(e) { console.warn('[Notif] dbSaveNotif catch:', e.message||e); }
+  } catch(e) { console.warn('[Notif] dbSaveNotif catch:', e.message || e); }
 }
 
 async function dbMarkNotifsLeidas(ids) {
@@ -2684,7 +2970,6 @@ async function dbDeleteAllNotifs() {
   } catch(e) {}
 }
 
-// Pedir permiso de notificaciones push al navegador
 async function requestPushPermission() {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
@@ -2692,52 +2977,35 @@ async function requestPushPermission() {
   }
 }
 
-// Disparar notificación nativa — usa SW si está disponible (funciona en background)
-function pushNativeNotif(titulo, body) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-  try {
-    // Usar el Service Worker para mostrar la notif (funciona aunque la app esté minimizada)
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SHOW_NOTIF', title: titulo, body
-      });
-    } else {
-      // Fallback directo si el SW no está activo
-      new Notification(titulo, {
-        body,
-        icon: './icon-192.png',
-        badge: './icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: 'la-roca-notif'
-      });
-    }
-  } catch(e) {}
-}
-
-// Añadir notificación: guarda en memoria, Supabase y dispara push
+// ── Añadir notificación ──
 async function addNotif(titulo, body, destinatarioId) {
   const notif = {
-    id: Date.now(),
-    titulo,
-    body,
+    id:     Date.now(), // temporal hasta que Supabase devuelva el real
+    titulo, body,
     tiempo: new Date().toLocaleString('es'),
-    nueva: true,
-    leida: false
+    nueva:  true,
+    leida:  false
   };
 
-  // Guardar en memoria
   if (!NOTIFS_POR_LIDER[destinatarioId]) NOTIFS_POR_LIDER[destinatarioId] = [];
   NOTIFS_POR_LIDER[destinatarioId].unshift(notif);
 
-  // Guardar en Supabase y esperar para obtener id real
   await dbSaveNotif(notif, destinatarioId);
 
-  // Si la notificación es para el usuario actual, actualizar badge y push
+  // Si es para el usuario actual: badge + panel + push
   if (currentUser && destinatarioId === currentUser.id) {
     updateNotifBadge();
+    mostrarPanelNotif(notif);  // abrir panel automáticamente
     pushNativeNotif(titulo, body);
   }
+}
+
+// ── Abrir panel de notificaciones automáticamente ──
+function mostrarPanelNotif(notif) {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  panel.classList.add('open');
+  renderNotifs();
 }
 
 function toggleNotif() {
@@ -2752,22 +3020,22 @@ function getMyNotifs() {
 }
 
 function updateNotifBadge() {
-  const count = getMyNotifs().filter(n => n.nueva).length;
-  const badge = document.getElementById('notif-count');
-  const btn   = document.getElementById('notif-btn');
+  const count  = getMyNotifs().filter(n => n.nueva).length;
+  const badge  = document.getElementById('notif-count');
+  const btn    = document.getElementById('notif-btn');
   if (!badge) return;
   if (count > 0) {
-    badge.style.display = 'flex';
-    badge.textContent = count > 9 ? '9+' : count;
-    if (btn) btn.style.color = 'var(--gold-light)';
+    badge.style.display  = 'flex';
+    badge.textContent    = count > 9 ? '9+' : String(count);
+    if (btn) btn.style.color = 'var(--gold)';
   } else {
-    badge.style.display = 'none';
+    badge.style.display  = 'none';
     if (btn) btn.style.color = '';
   }
 }
 
 function renderNotifs() {
-  const list = document.getElementById('notif-list');
+  const list   = document.getElementById('notif-list');
   const notifs = getMyNotifs();
 
   if (!notifs.length) {
@@ -2788,13 +3056,12 @@ function renderNotifs() {
       </button>
     </div>
     ${notifs.map(n => `
-      <div class="notif-item ${n.nueva ? 'notif-new' : ''}" style="${n.nueva ? '' : 'opacity:0.65'}">
+      <div class="notif-item ${n.nueva ? 'notif-new' : ''}" style="${n.nueva ? '' : 'opacity:0.6'}">
         <div class="ni-title">${n.titulo}</div>
         <div class="ni-body">${n.body}</div>
         <div class="ni-time">${n.tiempo}</div>
       </div>`).join('')}`;
 
-  // Marcar como leídas
   notifs.forEach(n => { n.nueva = false; n.leida = true; });
   if (unreadIds.length) dbMarkNotifsLeidas(unreadIds);
   updateNotifBadge();
@@ -2807,6 +3074,7 @@ async function clearAllNotifs() {
   renderNotifs();
   updateNotifBadge();
 }
+
 
 // ============================================================
 // SALA DE SALVACIÓN
@@ -2968,7 +3236,7 @@ async function guardarNuevaPass() {
   await sb.from('usuarios').update({ pass: p1, must_change_pass: false }).eq('id', currentUser.id);
   currentUser.pass = p1;
   currentUser.mustChangePass = false;
-  logHistorial('password', 'Contraseña cambiada por el usuario en primer acceso');
+  await logHistorial('password', 'Contraseña cambiada por el usuario en primer acceso');
   document.getElementById('modal-cambiar-pass').classList.remove('open');
   renderQuickAccess();
   renderDashboard();
@@ -3012,10 +3280,12 @@ function renderUsuariosPanel() {
       <td style="font-size:12px">${u.email}</td>
       ${showLiderCol ? `<td style="font-size:12px">${u.liderId||'—'}</td>` : ''}
       ${showSupCol   ? `<td style="font-size:12px">${SUPERVISORES.find(s=>s.userId===u.id)?.nombre||'—'}</td>` : ''}
+      <td style="font-size:11px">${(u.rolesExtra||[]).length ? (u.rolesExtra||[]).map(r=>({cosecha:'🌾',lider:'👤',supervisor:'🧭',pastor:'🙏',analista:'🔍'}[r]||r)+' '+r).join(', ') : '—'}</td>
       <td><code style="background:rgba(201,168,76,0.1);padding:2px 8px;border-radius:4px;font-size:12px;letter-spacing:1px">${u.pass}</code></td>
       <td><span class="badge ${u.mustChangePass?'badge-pendiente':'badge-si'}">${u.mustChangePass?'Cambio pendiente':'Activo'}</span></td>
       <td style="white-space:nowrap">
         <button class="btn btn-ghost btn-sm" onclick="resetPassUser(${u.id})" title="Resetear contraseña">🔄</button>
+        <button class="btn btn-ghost btn-sm" onclick="editarRolesExtra(${u.id})" title="Gestionar roles extra">🎭</button>
         ${u.id!==1?`<button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteUser(${u.id})" title="Eliminar usuario">🗑</button>`:''}
       </td>
     </tr>`).join('')
@@ -3084,6 +3354,7 @@ function renderUsuariosPanel() {
             <th>Correo</th>
             ${showLiderCol ? '<th>Líder</th>' : ''}
             ${showSupCol   ? '<th>Supervisor</th>' : ''}
+            <th>Roles extra</th>
             <th>Contraseña</th>
             <th>Estado</th>
             <th style="width:80px"></th>
@@ -3124,7 +3395,7 @@ async function addUser(rol) {
   if (USERS.find(u=>u.email.toLowerCase()===emailRaw)) { alert('Este correo ya existe'); return; }
 
   const pass = genPass();
-  const newUser = { id:nextUserId++, email:emailRaw, pass, nombre, rol, liderId:'', mustChangePass:true };
+  const newUser = { id:nextUserId++, email:emailRaw, pass, nombre, rol, rolesExtra:[], liderId:'', mustChangePass:true };
 
   if (rol === 'lider') {
     const liderId = document.getElementById('new-usr-lider')?.value || '';
@@ -3135,7 +3406,7 @@ async function addUser(rol) {
 
   await dbSaveUsuario(newUser);
   USERS.push(newUser);
-  logHistorial('nuevo_usuario', `Usuario creado: ${newUser.nombre} (${newUser.email}) — rol: ${rol}`);
+  await logHistorial('nuevo_usuario', `Usuario creado: ${newUser.nombre} (${newUser.email}) — rol: ${rol}`);
 
   // If supervisor, link them to the supervisor panel
   if (rol === 'supervisor') {
@@ -3158,6 +3429,45 @@ async function addUser(rol) {
   alert(`✅ Usuario creado.\n\nContraseña provisional: ${pass}\n\nEl usuario deberá cambiarla al entrar.`);
 }
 
+function editarRolesExtra(userId) {
+  const u = USERS.find(x=>x.id===userId);
+  if (!u) return;
+  const ROL_OPTS = ['cosecha','lider','supervisor','pastor','analista'];
+  const ROL_LABELS = {cosecha:'🌾 Cosecha',lider:'👤 Líder',supervisor:'🧭 Supervisor',pastor:'🙏 Pastor',analista:'🔍 Analista'};
+  const current = u.rolesExtra || [];
+
+  const checkboxes = ROL_OPTS
+    .filter(r => r !== u.rol) // no mostrar el rol principal
+    .map(r => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid rgba(201,168,76,0.2);margin-bottom:8px;cursor:pointer;background:rgba(201,168,76,${current.includes(r)?'0.1':'0.02'})">
+        <input type="checkbox" value="${r}" ${current.includes(r)?'checked':''} style="width:16px;height:16px;accent-color:var(--gold)">
+        <span>${ROL_LABELS[r]}</span>
+      </label>`).join('');
+
+  const html = `
+    <div style="padding:8px 0">
+      <p style="color:var(--text-light);font-size:13px;margin-bottom:16px">
+        Usuario: <strong style="color:var(--white)">${u.nombre}</strong><br>
+        Rol principal: <strong style="color:var(--gold)">${ROL_LABELS[u.rol]||u.rol}</strong>
+      </p>
+      <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold-light);margin-bottom:12px">Roles adicionales:</p>
+      <div id="roles-extra-checks">${checkboxes}</div>
+      <p style="font-size:11px;color:var(--text-light);margin-top:12px">Con roles adicionales, el usuario podrá cambiar de vista usando el selector en el encabezado de la app.</p>
+    </div>`;
+
+  openModal('modal-roles-extra');
+  document.getElementById('modal-roles-extra-body').innerHTML = html;
+  document.getElementById('modal-roles-extra-btn').onclick = async () => {
+    const checks = document.querySelectorAll('#roles-extra-checks input[type=checkbox]');
+    u.rolesExtra = Array.from(checks).filter(c=>c.checked).map(c=>c.value);
+    await dbSaveUsuario(u);
+    await logHistorial('ajuste_usuario', 'Roles extra actualizados para ' + u.nombre + ': [' + (u.rolesExtra.join(', ')||'ninguno') + ']');
+    renderUsuariosPanel();
+    closeModal('modal-roles-extra');
+    showToast('✅ Roles de ' + u.nombre + ' actualizados', 'ok');
+  };
+}
+
 async function resetPassUser(id) {
   const u = USERS.find(x=>x.id===id);
   if (!u) return;
@@ -3165,7 +3475,7 @@ async function resetPassUser(id) {
   u.pass = pass;
   u.mustChangePass = true;
   await dbSaveUsuario(u);
-  logHistorial('password', `Contraseña reseteada para: ${u.nombre} (${u.email})`);
+  await logHistorial('password', `Contraseña reseteada para: ${u.nombre} (${u.email})`);
   renderUsuariosPanel();
   alert(`🔄 Contraseña restablecida.\nNueva contraseña provisional: ${pass}`);
 }
@@ -3174,7 +3484,7 @@ async function deleteUser(id) {
   const u = USERS.find(x=>x.id===id);
   if (!confirm(`¿Eliminar usuario ${u?.nombre||id}?`)) return;
   await dbDeleteUsuario(id);
-  logHistorial('borrar', `Usuario eliminado: ${u?.nombre} (${u?.email})`);
+  await logHistorial('borrar', `Usuario eliminado: ${u?.nombre} (${u?.email})`);
   const idx = USERS.findIndex(u=>u.id===id);
   if (idx>-1) USERS.splice(idx,1);
   renderUsuariosPanel();
@@ -3284,7 +3594,7 @@ async function crearNuevoGrupo() {
   document.getElementById('nuevo-grupo-titulo').value = '';
   document.getElementById('nuevo-grupo-supervisor').value = '';
   document.getElementById('nuevo-grupo-form').style.display = 'none';
-  logHistorial('supervisor_cfg', `Grupo "${titulo}" creado para supervisor: ${supNombre}`);
+  await logHistorial('supervisor_cfg', `Grupo "${titulo}" creado para supervisor: ${supNombre}`);
   renderSupervisoresCfg();
   showToast(`✅ Grupo "${titulo}" creado para ${supNombre}`, 'ok');
 }
@@ -3293,7 +3603,7 @@ async function deleteSupervisor(id) {
   const s = SUPERVISORES.find(x=>x.id===id);
   if (!confirm(`¿Eliminar configuración de supervisor "${s?.nombre}"?`)) return;
   await dbDeleteSupervisor(id);
-  logHistorial('borrar', `Supervisor eliminado: ${s?.nombre}`);
+  await logHistorial('borrar', `Supervisor eliminado: ${s?.nombre}`);
   SUPERVISORES = SUPERVISORES.filter(s=>s.id!==id);
   renderSupervisoresCfg();
 }

@@ -1,6 +1,6 @@
 {
   "name": "Sistema de Gestión",
-  "short_name": "La Roca",
+  "short_name": "Gestión",
   "description": "Centro Cristiano La Roca — Sistema de Gestión Ministerial",
   "start_url": "./index.html",
   "display": "standalone",
