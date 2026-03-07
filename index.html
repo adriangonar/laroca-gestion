@@ -133,7 +133,8 @@
   .form-group input::placeholder { color: rgba(255,255,255,0.35); font-size: 15px; }
   .form-group select option { background: #1A1208; color: #fff; }
 
-  /* ── Interior app: TODOS los inputs, selects y textareas → texto negro ── */
+  /* ── Interior app: TODOS los inputs, selects y textareas ── */
+  /* Fondo blanco, texto invisible por defecto, visible solo al escribir */
   .main-content .form-group input,
   .main-content .form-group select,
   .main-content .form-group textarea,
@@ -145,9 +146,10 @@
   #app textarea {
     background: #ffffff !important;
     border-color: rgba(201,168,76,0.3);
-    color: #1A1208 !important;
-    -webkit-text-fill-color: #1A1208 !important;
+    color: rgba(26,18,8,0.0) !important;
+    -webkit-text-fill-color: rgba(26,18,8,0.0) !important;
   }
+  /* Al escribir o cuando tiene valor → texto negro visible */
   .main-content .form-group input:focus,
   .main-content .form-group select:focus,
   .main-content .form-group textarea:focus,
@@ -156,14 +158,27 @@
   .modal .form-group textarea:focus,
   #app input:not(#login-pass):not(#login-email):focus,
   #app select:focus,
-  #app textarea:focus {
-    border-color: var(--gold);
-    background: #ffffff !important;
+  #app textarea:focus,
+  .main-content .form-group input:not(:placeholder-shown),
+  .main-content .form-group textarea:not(:placeholder-shown),
+  .modal .form-group input:not(:placeholder-shown),
+  .modal .form-group textarea:not(:placeholder-shown),
+  #app input:not(#login-pass):not(#login-email):not(:placeholder-shown),
+  #app textarea:not(:placeholder-shown) {
     color: #1A1208 !important;
     -webkit-text-fill-color: #1A1208 !important;
+    background: #ffffff !important;
+    border-color: var(--gold);
     box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
   }
-  /* Autocompletado del navegador — evita que el fondo azul tape el color */
+  /* Select siempre visible cuando tiene opción seleccionada */
+  #app select:not([value=""]),
+  .main-content .form-group select,
+  .modal .form-group select {
+    color: #1A1208 !important;
+    -webkit-text-fill-color: #1A1208 !important;
+  }
+  /* Autocompletado */
   .main-content .form-group input:-webkit-autofill,
   .modal .form-group input:-webkit-autofill,
   #app input:-webkit-autofill {
@@ -175,7 +190,7 @@
   .modal .form-group input::placeholder,
   .modal .form-group textarea::placeholder,
   #app input::placeholder,
-  #app textarea::placeholder { color: rgba(26,18,8,0.38); }
+  #app textarea::placeholder { color: rgba(26,18,8,0.35); }
   .main-content .form-group select option,
   .modal .form-group select option,
   #app select option { background: #fff; color: #1A1208; }
@@ -954,15 +969,13 @@ function doLogin() {
             <option value="login">🔑 Accesos</option>
             <option value="nuevo_usuario">👤 Usuarios</option>
             <option value="ajuste_usuario">⚙️ Edición usuarios</option>
-            <option value="borrar">🗑️ Eliminaciones</option>
-            <option value="password">🔑 Contraseñas</option>
             <option value="vista">👁️ Consultas</option>
           </select>
           <input type="text" class="filter-input" id="filter-hist-usuario" placeholder="🔍 Filtrar por usuario..." oninput="renderHistorial()" style="min-width:160px">
           <input type="text" class="filter-input" id="filter-hist-persona" placeholder="🔍 Filtrar por persona..." oninput="renderHistorial()" style="min-width:160px">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-light);cursor:pointer;white-space:nowrap">
-            <input type="checkbox" id="filter-hist-vistas" onchange="renderHistorial()" style="width:14px;height:14px">
-            Mostrar consultas
+            <input type="checkbox" id="filter-hist-sensibles" onchange="renderHistorial()" style="width:14px;height:14px">
+            Mostrar eliminaciones y contraseñas
           </label>
         </div>
         <div class="card">
@@ -1711,6 +1724,13 @@ async function initApp() {
   await dbLoadNotifs();
   requestPushPermission();
 
+  // Si hay notificaciones sin leer al entrar → mostrar panel automáticamente
+  const sinLeer = getMyNotifs().filter(n => n.nueva);
+  if (sinLeer.length > 0) {
+    sinLeer.forEach(n => pushNativeNotif(n.titulo, n.body));
+    mostrarPanelNotif();
+  }
+
   // Polling cada 10s — detecta notifs nuevas en tiempo real
   setInterval(async () => {
     const antesNuevas = getMyNotifs().filter(n => n.nueva).length;
@@ -2041,7 +2061,7 @@ async function renderHistorial() {
   const accionFil   = document.getElementById('filter-hist-accion')?.value || '';
   const usuarioFil  = (document.getElementById('filter-hist-usuario')?.value || '').toLowerCase().trim();
   const personaFil  = (document.getElementById('filter-hist-persona')?.value || '').toLowerCase().trim();
-  const mostrarVistas = document.getElementById('filter-hist-vistas')?.checked || false;
+  const mostrarSensibles = document.getElementById('filter-hist-sensibles')?.checked || false;
 
   let q = sb.from('historial').select('*').order('fecha', {ascending: false});
   if (rolFil)    q = q.eq('usuario_rol', rolFil);
@@ -2083,11 +2103,10 @@ ALTER TABLE historial DISABLE ROW LEVEL SECURITY;</pre>
     return;
   }
 
-  // Filtros en cliente (usuario, persona, y ocultar consultas si no marcado)
-  let rows = data;
-  if (!mostrarVistas) rows = rows.filter(h => h.accion !== 'vista' && h.accion !== 'cambio_vista');
-  if (usuarioFil)     rows = rows.filter(h => (h.usuario_nombre||'').toLowerCase().includes(usuarioFil));
-  if (personaFil)     rows = rows.filter(h => (h.persona_nombre||'').toLowerCase().includes(personaFil));
+  // Por defecto: ocultar eliminaciones y contraseñas. Mostrar todo lo demás.
+  if (!mostrarSensibles) rows = rows.filter(h => h.accion !== 'borrar' && h.accion !== 'password');
+  if (usuarioFil)  rows = rows.filter(h => (h.usuario_nombre||'').toLowerCase().includes(usuarioFil));
+  if (personaFil)  rows = rows.filter(h => (h.persona_nombre||'').toLowerCase().includes(personaFil));
 
   if (countEl) countEl.textContent = `${rows.length} registro${rows.length!==1?'s':''}`;
 
@@ -2454,7 +2473,9 @@ async function guardarPersona() {
 
   showToast(`✅ ${nombre} ${apellidos} registrado/a correctamente`, 'ok');
 
-  // Volver al inicio (dashboard)
+  // Volver al inicio y refrescar datos
+  renderDashboard();
+  renderPersonas();
   showPage('dashboard');
 }
 
