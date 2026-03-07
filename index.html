@@ -1210,52 +1210,67 @@ const sb = {
 async function dbLoadAll() {
   showLoadingOverlay(true);
   try {
+    // Usar fetch directo — más fiable que el query builder en todos los dispositivos
+    const headers = SUPA_HEADERS;
+    const base    = SUPA_URL + '/rest/v1/';
+
     const [pRes, cRes, uRes, supRes, grpRes, opRes] = await Promise.all([
-      sb.from('personas').select('*').order('id').get(),
-      sb.from('cartas').select('*').order('id').get(),
-      sb.from('usuarios').select('*').order('id').get(),
-      sb.from('supervisores').select('*').order('id').get(),
-      sb.from('supervisor_grupos').select('*').order('id').get(),
-      sb.from('opciones').select('*').order('id').get(),
+      fetch(base + 'personas?select=*&order=id', { headers }).then(r => r.json()),
+      fetch(base + 'cartas?select=*&order=id',   { headers }).then(r => r.json()),
+      fetch(base + 'usuarios?select=*&order=id',  { headers }).then(r => r.json()),
+      fetch(base + 'supervisores?select=*&order=id', { headers }).then(r => r.json()),
+      fetch(base + 'supervisor_grupos?select=*&order=id', { headers }).then(r => r.json()),
+      fetch(base + 'opciones?select=*&order=id',  { headers }).then(r => r.json()),
     ]);
 
+    // Detectar error de RLS / permisos
+    const checkErr = (res, tabla) => {
+      if (res && res.code) {
+        console.error(`[DB] Error en tabla ${tabla}:`, res);
+        return true;
+      }
+      return false;
+    };
+
     // PERSONAS
-    if (pRes.data && pRes.data.length) {
-      PERSONAS = pRes.data.map(r=>({
+    if (Array.isArray(pRes) && !checkErr(pRes, 'personas')) {
+      PERSONAS = pRes.map(r=>({
         id:r.id, fecha:r.fecha, nombre:r.nombre, apellidos:r.apellidos||'',
         telefono:r.telefono||'', email:r.email||'', edad:r.edad||0,
         grupo:r.grupo||'', nacionalidad:r.nacionalidad||'',
         direccion:r.direccion||'', invitadoPor:r.invitado_por||'',
         decision:r.decision||'', lider:r.lider||'', motivo:r.motivo||'',
-        obs:r.obs||'', estado:r.estado||'', asisteCelula:r.asiste_celula||'Pendiente'
+        obs:r.obs||'', estado:r.estado||'Pendiente', asisteCelula:r.asiste_celula||'Pendiente'
       }));
-      nextPersonaId = Math.max(...PERSONAS.map(p=>p.id)) + 1;
+      if (PERSONAS.length) nextPersonaId = Math.max(...PERSONAS.map(p=>p.id)) + 1;
+    } else if (!Array.isArray(pRes)) {
+      showToast('⚠️ Sin acceso a personas — verifica RLS en Supabase', 'error');
     }
 
     // CARTAS
-    if (cRes.data && cRes.data.length) {
-      CARTAS = cRes.data.map(r=>({
+    if (Array.isArray(cRes)) {
+      CARTAS = cRes.map(r=>({
         id:r.id, lider:r.lider, tipo:r.tipo, num:r.num||1, fecha:r.fecha,
         personaId:r.persona_id||null, personaNombre:r.persona_nombre||'',
         estado:r.estado||'Pendiente', tipoCarta:r.tipo_carta||'evangelismo',
         _fromDB:true
       }));
-      nextCartaId = Math.max(...CARTAS.map(c=>c.id)) + 1;
+      if (CARTAS.length) nextCartaId = Math.max(...CARTAS.map(c=>c.id)) + 1;
     }
 
     // USUARIOS
-    if (uRes.data && uRes.data.length) {
-      USERS = uRes.data.map(r=>({
+    if (Array.isArray(uRes)) {
+      USERS = uRes.map(r=>({
         id:r.id, email:r.email, pass:r.pass, nombre:r.nombre,
         rol:r.rol, rolesExtra:r.roles_extra||[], liderId:r.lider_id||'', mustChangePass:r.must_change_pass
       }));
-      nextUserId = Math.max(...USERS.map(u=>u.id)) + 1;
+      if (USERS.length) nextUserId = Math.max(...USERS.map(u=>u.id)) + 1;
     }
 
     // SUPERVISORES + GRUPOS
-    if (supRes.data && supRes.data.length) {
-      SUPERVISORES = supRes.data.map(s=>{
-        const grupos = (grpRes.data||[])
+    if (Array.isArray(supRes) && supRes.length) {
+      SUPERVISORES = supRes.map(s=>{
+        const grupos = (Array.isArray(grpRes) ? grpRes : [])
           .filter(g=>g.supervisor_id===s.id)
           .map(g=>({id:g.id, nombre:g.nombre, lideres:g.lideres||[]}));
         return {id:s.id, userId:s.user_id, nombre:s.nombre, grupos: grupos.length ? grupos : [{nombre:'Grupo',lideres:[]}]};
@@ -1264,19 +1279,20 @@ async function dbLoadAll() {
     }
 
     // OPCIONES
-    if (opRes.data && opRes.data.length) {
-      const decs = opRes.data.filter(o=>o.tipo==='decision').map(o=>o.valor);
-      const mots = opRes.data.filter(o=>o.tipo==='motivo').map(o=>o.valor);
-      const lids = opRes.data.filter(o=>o.tipo==='lider').map(o=>o.valor);
-      const sups = opRes.data.filter(o=>o.tipo==='supervisor').map(o=>o.valor);
+    if (Array.isArray(opRes) && opRes.length) {
+      const decs = opRes.filter(o=>o.tipo==='decision').map(o=>o.valor);
+      const mots = opRes.filter(o=>o.tipo==='motivo').map(o=>o.valor);
+      const lids = opRes.filter(o=>o.tipo==='lider').map(o=>o.valor);
+      const sups = opRes.filter(o=>o.tipo==='supervisor').map(o=>o.valor);
       if (decs.length) DECISIONES = decs;
       if (mots.length) MOTIVOS = mots;
       if (lids.length) LIDERES = lids;
       if (sups.length) SUPERVISORES_NOMBRES = sups;
     }
+
   } catch(e) {
     console.error('Error cargando datos:', e);
-    showToast('⚠️ Error conectando con la base de datos', 'error');
+    showToast('⚠️ Error conectando con la base de datos: ' + (e.message||e), 'error');
   }
   showLoadingOverlay(false);
 }
