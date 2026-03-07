@@ -1412,19 +1412,25 @@ async function dbDeleteSupervisor(id) {
 // --- HISTORIAL ---
 async function logHistorial(accion, detalle, personaId=null, personaNombre='') {
   if (!currentUser) return;
+  const row = {
+    fecha:          new Date().toISOString(),
+    usuario_nombre: currentUser.nombre,
+    usuario_rol:    vistaActualRol || currentUser.rol,
+    accion,
+    detalle,
+    persona_id:     personaId   || null,
+    persona_nombre: personaNombre || ''
+  };
   try {
-    const row = {
-      fecha:          new Date().toISOString(),
-      usuario_nombre: currentUser.nombre,
-      usuario_rol:    vistaActualRol || currentUser.rol,
-      accion,
-      detalle,
-      persona_id:     personaId   || null,
-      persona_nombre: personaNombre || ''
-    };
     const res = await sb.from('historial').insert(row).then(r=>r);
-    if (res.error) console.warn('Historial insert error:', res.error);
-  } catch(e) { console.warn('Historial error:', e); }
+    if (res.error) {
+      console.error('[Historial] Error al guardar:', JSON.stringify(res.error));
+      console.error('[Historial] Fila intentada:', JSON.stringify(row));
+    }
+  } catch(e) {
+    console.error('[Historial] Excepción:', e.message || e);
+    console.error('[Historial] Fila intentada:', JSON.stringify(row));
+  }
 }
 
 // ============================================================
@@ -2029,7 +2035,7 @@ async function renderHistorial() {
   const tableEl = document.getElementById('table-historial');
   const countEl = document.getElementById('historial-count');
   if (!tableEl) return;
-  tableEl.innerHTML = '<p style="opacity:0.5;padding:20px;text-align:center">Cargando...</p>';
+  tableEl.innerHTML = '<p style="opacity:0.5;padding:20px;text-align:center">⏳ Cargando historial...</p>';
 
   const rolFil      = document.getElementById('filter-hist-rol')?.value    || '';
   const accionFil   = document.getElementById('filter-hist-accion')?.value || '';
@@ -2041,9 +2047,39 @@ async function renderHistorial() {
   if (rolFil)    q = q.eq('usuario_rol', rolFil);
   if (accionFil) q = q.eq('accion', accionFil);
 
-  const {data, error} = await q.get();
+  let data, error;
+  try {
+    const res = await q.get();
+    data  = res.data;
+    error = res.error;
+  } catch(e) {
+    error = e;
+  }
+
   if (error || !data) {
-    tableEl.innerHTML = '<p style="color:red;padding:20px">Error cargando historial. Verifica que la tabla existe en Supabase.</p>';
+    const errMsg = typeof error === 'object' ? JSON.stringify(error, null, 2) : String(error);
+    tableEl.innerHTML = `
+      <div style="padding:24px">
+        <p style="color:#e74c3c;font-weight:700;margin-bottom:8px">❌ Error al cargar el historial</p>
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:16px">
+          Lo más probable es que la tabla <code>historial</code> no exista en Supabase.<br>
+          Ve a <strong>Supabase → SQL Editor</strong> y ejecuta este SQL:
+        </p>
+        <pre style="background:#1a1208;color:#c9a84c;padding:16px;border-radius:10px;font-size:11px;overflow:auto;white-space:pre-wrap">CREATE TABLE IF NOT EXISTS historial (
+  id              bigserial PRIMARY KEY,
+  fecha           timestamptz DEFAULT now(),
+  usuario_nombre  text,
+  usuario_rol     text,
+  accion          text,
+  detalle         text,
+  persona_id      bigint REFERENCES personas(id) ON DELETE SET NULL,
+  persona_nombre  text
+);
+ALTER TABLE historial DISABLE ROW LEVEL SECURITY;</pre>
+        <p style="font-size:11px;color:var(--text-light);margin-top:12px">Error técnico: <code style="font-size:10px">${errMsg.substring(0,300)}</code></p>
+        <button class="btn btn-gold btn-sm" style="margin-top:12px" onclick="renderHistorial()">🔄 Reintentar</button>
+      </div>`;
+    if (countEl) countEl.textContent = 'Error';
     return;
   }
 
@@ -2380,24 +2416,31 @@ async function guardarPersona() {
   CARTAS.push(carta);
 
   // ── Notificar al líder asignado ──
-  // Buscar por liderId (nombre del líder en opciones) O por nombre del usuario
+  // Buscar el usuario cuyo liderId coincide con el nombre seleccionado
+  // También buscar en rolesExtra por si el rol principal no es 'lider'
   const liderUser = USERS.find(u =>
-    u.rol === 'lider' && (
+    (u.rol === 'lider' || (u.rolesExtra||[]).includes('lider')) && (
       u.liderId === lider ||
+      u.liderId.toLowerCase().trim() === lider.toLowerCase().trim() ||
       u.nombre  === lider ||
       u.nombre.toLowerCase().trim() === lider.toLowerCase().trim()
     )
   );
 
   if (liderUser) {
+    console.log('[Notif] Enviando notif a líder:', liderUser.nombre, '| id:', liderUser.id);
     await addNotif(
       '🔔 Nueva persona asignada',
       `${nueva.nombre} ${nueva.apellidos} — Decisión: ${nueva.decision}`,
       liderUser.id
     );
   } else {
-    console.warn('[Notif] No se encontró usuario líder para:', lider,
-      '| Líderes disponibles:', USERS.filter(u=>u.rol==='lider').map(u=>u.liderId+'|'+u.nombre));
+    // Mostrar aviso visible en consola con todos los usuarios disponibles
+    console.warn('[Notif] ⚠️ No se encontró usuario líder para el nombre:', JSON.stringify(lider));
+    console.warn('[Notif] Usuarios disponibles con rol lider:', 
+      JSON.stringify(USERS.filter(u => u.rol==='lider' || (u.rolesExtra||[]).includes('lider'))
+        .map(u => ({id:u.id, nombre:u.nombre, liderId:u.liderId, rol:u.rol, rolesExtra:u.rolesExtra}))));
+    showToast(`⚠️ Persona guardada pero no se encontró el usuario líder "${lider}" para notificar`, 'warn');
   }
 
   // Limpiar formulario
@@ -2943,15 +2986,23 @@ async function dbSaveNotif(notif, destinatarioId) {
       leida:  false,
       fecha:  new Date().toISOString()
     }).then(r => r);
-    if (res.error) console.warn('[Notif] dbSaveNotif error:', res.error);
-    else if (res.data) {
-      const real = Array.isArray(res.data) ? res.data[0] : res.data;
-      if (real && real.id) {
-        const mem = (NOTIFS_POR_LIDER[destinatarioId] || []).find(n => n.id === notif.id);
-        if (mem) mem.id = real.id;
+    if (res.error) {
+      console.error('[Notif] ❌ dbSaveNotif error:', JSON.stringify(res.error));
+      showToast('⚠️ Error guardando notificación: ' + (res.error.message || JSON.stringify(res.error)), 'error');
+    } else {
+      console.log('[Notif] ✅ Notificación guardada en Supabase para destinatario id:', destinatarioId);
+      if (res.data) {
+        const real = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (real && real.id) {
+          const mem = (NOTIFS_POR_LIDER[destinatarioId] || []).find(n => n.id === notif.id);
+          if (mem) mem.id = real.id;
+        }
       }
     }
-  } catch(e) { console.warn('[Notif] dbSaveNotif catch:', e.message || e); }
+  } catch(e) {
+    console.error('[Notif] ❌ dbSaveNotif excepción:', e.message || e);
+    showToast('⚠️ Excepción guardando notificación: ' + (e.message||e), 'error');
+  }
 }
 
 async function dbMarkNotifsLeidas(ids) {
