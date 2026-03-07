@@ -1357,12 +1357,9 @@ async function initApp() {
 
   populateLiderSelects();
 
-  // Bell only for líderes
+  // Campana visible para todos
   document.getElementById('notif-btn').style.display = 'inline-flex';
-  if (rol==='lider') {
-    if (!NOTIFS_POR_LIDER[currentUser.liderId]) NOTIFS_POR_LIDER[currentUser.liderId] = [];
-    updateNotifBadge();
-  }
+  if (!NOTIFS_POR_LIDER[currentUser.id]) NOTIFS_POR_LIDER[currentUser.id] = [];
 
   // First-login password change
   if (currentUser.mustChangePass) {
@@ -1975,34 +1972,44 @@ function initNuevoRegistro() {
 }
 
 async function guardarPersona() {
-  const nombre = document.getElementById('reg-nombre').value.trim();
+  const nombre   = document.getElementById('reg-nombre').value.trim();
   const apellidos = document.getElementById('reg-apellidos').value.trim();
   if (!nombre) { alert('Por favor ingresa el nombre'); return; }
   const lider = document.getElementById('reg-lider').value;
+  if (!lider)  { alert('Por favor selecciona un líder'); return; }
+
   const nueva = {
     id: nextPersonaId++,
     fecha: document.getElementById('reg-fecha').value,
     nombre, apellidos,
-    telefono: document.getElementById('reg-telefono').value,
-    email: document.getElementById('reg-email').value,
-    edad: parseInt(document.getElementById('reg-edad').value)||0,
-    grupo: document.getElementById('reg-grupo').value,
-    nacionalidad: document.getElementById('reg-nacionalidad').value,
-    direccion: document.getElementById('reg-direccion').value,
+    telefono:    document.getElementById('reg-telefono').value,
+    email:       document.getElementById('reg-email').value,
+    edad:        parseInt(document.getElementById('reg-edad').value)||0,
+    grupo:       document.getElementById('reg-grupo').value,
+    nacionalidad:document.getElementById('reg-nacionalidad').value,
+    direccion:   document.getElementById('reg-direccion').value,
     invitadoPor: document.getElementById('reg-invitado-por').value,
-    decision: document.getElementById('reg-decision').value,
+    decision:    document.getElementById('reg-decision').value,
     lider,
-    motivo: document.getElementById('reg-motivo').value,
-    obs: document.getElementById('reg-obs').value,
-    estado: 'Pendiente de contacto',
-    asisteCelula: 'Pendiente'
+    motivo:      document.getElementById('reg-motivo').value,
+    obs:         document.getElementById('reg-obs').value,
+    estado:      'Pendiente de contacto',
+    asisteCelula:'Pendiente'
   };
+
   await dbSavePersona(nueva);
   PERSONAS.push(nueva);
   HISTORIAL = HISTORIALES[nueva.id] = [];
-  logHistorial('registro', `Registrado/a: ${nueva.nombre} ${nueva.apellidos} — Decisión: ${nueva.decision} — Líder: ${lider}`, nueva.id, `${nueva.nombre} ${nueva.apellidos}`);
 
-  // Crear carta/seguimiento automático para el líder
+  // Historial — con await para asegurar que se guarda
+  await logHistorial(
+    'registro',
+    `Registrado/a: ${nueva.nombre} ${nueva.apellidos} — Decisión: ${nueva.decision} — Líder: ${lider}`,
+    nueva.id,
+    `${nueva.nombre} ${nueva.apellidos}`
+  );
+
+  // Carta de seguimiento automática
   const carta = {
     id: nextCartaId++,
     lider, tipo: 'seguimiento', num: 1,
@@ -2015,25 +2022,40 @@ async function guardarPersona() {
   await dbSaveCarta(carta);
   CARTAS.push(carta);
 
-  // ── Notificar SOLO al líder asignado ──
-  // liderId en el usuario es el nombre del líder (string), igual que lider en el registro
-  const liderUser = USERS.find(u => u.rol === 'lider' && u.liderId === lider);
-  console.log('[Notif] Buscando líder:', lider, '→ encontrado:', liderUser ? liderUser.nombre + ' (id:' + liderUser.id + ')' : 'NINGUNO');
-  console.log('[Notif] Usuarios líderes disponibles:', USERS.filter(u=>u.rol==='lider').map(u=>({nombre:u.nombre,liderId:u.liderId})));
+  // ── Notificar al líder asignado ──
+  // Buscar por liderId (nombre del líder en opciones) O por nombre del usuario
+  const liderUser = USERS.find(u =>
+    u.rol === 'lider' && (
+      u.liderId === lider ||
+      u.nombre  === lider ||
+      u.nombre.toLowerCase().trim() === lider.toLowerCase().trim()
+    )
+  );
+
   if (liderUser) {
     await addNotif(
       '🔔 Nueva persona asignada',
       `${nueva.nombre} ${nueva.apellidos} — Decisión: ${nueva.decision}`,
       liderUser.id
     );
-    console.log('[Notif] Notificación enviada a líder id:', liderUser.id);
   } else {
-    console.warn('[Notif] No se encontró usuario líder para:', lider, '— la notificación no se enviará');
+    console.warn('[Notif] No se encontró usuario líder para:', lider,
+      '| Líderes disponibles:', USERS.filter(u=>u.rol==='lider').map(u=>u.liderId+'|'+u.nombre));
   }
-  showToast(`✅ ${nombre} registrado/a y asignado/a a ${lider}`, 'ok');
-  ['reg-nombre','reg-apellidos','reg-telefono','reg-email','reg-edad','reg-direccion','reg-invitado-por','reg-obs'].forEach(id=>document.getElementById(id).value='');
-  ['reg-nacionalidad','reg-grupo','reg-decision','reg-motivo','reg-lider'].forEach(id=>document.getElementById(id).selectedIndex=0);
-  showPage('personas');
+
+  // Limpiar formulario
+  ['reg-nombre','reg-apellidos','reg-telefono','reg-email','reg-edad',
+   'reg-direccion','reg-invitado-por','reg-obs'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['reg-nacionalidad','reg-grupo','reg-decision','reg-motivo','reg-lider'].forEach(id => {
+    document.getElementById(id).selectedIndex = 0;
+  });
+
+  showToast(`✅ ${nombre} ${apellidos} registrado/a correctamente`, 'ok');
+
+  // Volver al inicio (dashboard)
+  showPage('dashboard');
 }
 
 // ============================================================
@@ -2504,31 +2526,44 @@ async function dbLoadNotifs() {
       .eq('destinatario_id', currentUser.id)
       .order('id', {ascending: false})
       .get();
-    if (res.data) {
-      // Sync into NOTIFS_POR_LIDER using user id as key
-      NOTIFS_POR_LIDER[currentUser.id] = res.data.map(r => ({
-        id: r.id,
+    if (res.data && !res.error) {
+      const fromDB = res.data.map(r => ({
+        id:     r.id,
         titulo: r.titulo,
-        body: r.cuerpo,
+        body:   r.cuerpo,
         tiempo: r.fecha ? new Date(r.fecha).toLocaleString('es') : '',
-        nueva: !r.leida,
-        leida: r.leida
+        nueva:  !r.leida,
+        leida:  r.leida
       }));
+      // Merge: DB wins for persisted items, keep in-memory-only items too
+      const inMem = NOTIFS_POR_LIDER[currentUser.id] || [];
+      const dbIds = new Set(fromDB.map(n => n.id));
+      const memOnly = inMem.filter(n => !dbIds.has(n.id));
+      NOTIFS_POR_LIDER[currentUser.id] = [...memOnly, ...fromDB];
       updateNotifBadge();
     }
-  } catch(e) { /* tabla puede no existir aún — se usa solo memoria */ }
+  } catch(e) {
+    // Tabla no existe aún — no sobreescribir memoria
+    console.warn('[Notif] dbLoadNotifs error (tabla puede no existir):', e.message||e);
+  }
 }
 
 async function dbSaveNotif(notif, destinatarioId) {
   try {
-    await sb.from('notificaciones').insert({
+    const res = await sb.from('notificaciones').insert({
       destinatario_id: destinatarioId,
       titulo: notif.titulo,
       cuerpo: notif.body,
-      leida: false,
-      fecha: new Date().toISOString()
+      leida:  false,
+      fecha:  new Date().toISOString()
     }).get();
-  } catch(e) { /* silencioso — funciona igual en memoria */ }
+    if (res.error) console.warn('[Notif] dbSaveNotif error:', res.error);
+    else if (res.data && res.data[0]) {
+      // Actualizar id en memoria con el id real de Supabase
+      const mem = (NOTIFS_POR_LIDER[destinatarioId]||[]).find(n=>n.id===notif.id);
+      if (mem) mem.id = res.data[0].id;
+    }
+  } catch(e) { console.warn('[Notif] dbSaveNotif catch:', e.message||e); }
 }
 
 async function dbMarkNotifsLeidas(ids) {
@@ -2585,8 +2620,8 @@ async function addNotif(titulo, body, destinatarioId) {
   if (!NOTIFS_POR_LIDER[destinatarioId]) NOTIFS_POR_LIDER[destinatarioId] = [];
   NOTIFS_POR_LIDER[destinatarioId].unshift(notif);
 
-  // Guardar en Supabase (async, no bloquea)
-  dbSaveNotif(notif, destinatarioId);
+  // Guardar en Supabase y esperar para obtener id real
+  await dbSaveNotif(notif, destinatarioId);
 
   // Si la notificación es para el usuario actual, actualizar badge y push
   if (currentUser && destinatarioId === currentUser.id) {
