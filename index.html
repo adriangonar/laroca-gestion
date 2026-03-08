@@ -2574,6 +2574,12 @@ async function _guardarPersonaCore(nombre, apellidos, lider) {
       nueva.nombre + ' ' + nueva.apellidos + ' \u2014 ' + nueva.decision,
       liderUser.id
     );
+    // Enviar push nativo al móvil del líder (aunque tenga la app cerrada)
+    enviarPushAlUsuario(
+      liderUser.id,
+      '🔔 Nueva persona asignada',
+      nueva.nombre + ' ' + nueva.apellidos + ' — ' + nueva.decision
+    );
     showToast('\u2705 Guardado y notificado a ' + liderUser.nombre, 'ok');
   } else {
     const disponibles = USERS
@@ -3313,6 +3319,74 @@ async function addNotif(titulo, body, destinatarioId) {
 
 
 // ============================================================
+// ============================================================
+// PUSH NOTIFICATIONS — Web Push nativo (Android + iOS PWA)
+// ============================================================
+const VAPID_PUBLIC_KEY = 'BKaKbPOl1aq1D9ch4sPUpP-TPu8rcO3kZSqCzfqm1tKWSrC64KSRbcTUxgkF9laWNfBgDBJFBDeBfqwN9TU4k7c';
+const EDGE_PUSH_URL   = 'https://mzxyjkhedtrzmfqsmhma.supabase.co/functions/v1/smart-processor';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = window.atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function requestPushPermission() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (!currentUser) return;
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+
+    const reg  = await navigator.serviceWorker.ready;
+    const sub  = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    // Guardar token en Supabase
+    const token = JSON.stringify(sub.toJSON());
+    await fetch(SUPA_URL + '/rest/v1/push_tokens', {
+      method: 'POST',
+      headers: { ...SUPA_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        usuario_id:  currentUser.id,
+        token:       token,
+        dispositivo: /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'ios' : 'android'
+      })
+    });
+    console.log('[Push] Suscripción guardada ✅');
+  } catch(e) {
+    console.warn('[Push] No se pudo suscribir:', e.message);
+  }
+}
+
+async function enviarPushAlUsuario(usuarioId, titulo, cuerpo) {
+  try {
+    // Obtener tokens del usuario destinatario
+    const r = await fetch(
+      SUPA_URL + '/rest/v1/push_tokens?usuario_id=eq.' + usuarioId + '&select=token',
+      { headers: SUPA_HEADERS, cache: 'no-store' }
+    );
+    if (!r.ok) return;
+    const tokens = await r.json();
+    if (!Array.isArray(tokens) || !tokens.length) return;
+
+    // Enviar push a cada dispositivo del usuario
+    for (const row of tokens) {
+      fetch(EDGE_PUSH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: row.token, titulo, cuerpo })
+      }).catch(() => {});
+    }
+  } catch(e) {
+    console.warn('[Push] Error enviando push:', e.message);
+  }
+}
+
 // DIAGNÓSTICO SUPABASE
 // ============================================================
 async function testSupabase() {
@@ -3584,9 +3658,9 @@ function renderUsuariosPanel() {
         <td><code style="background:rgba(201,168,76,0.1);padding:2px 8px;border-radius:4px;font-size:12px">${u.pass}</code></td>
         <td><span class="badge ${u.mustChangePass?'badge-pendiente':'badge-si'}">${u.mustChangePass?'Pendiente':'Activo'}</span></td>
         <td style="white-space:nowrap">
-          <button class="btn btn-ghost btn-sm" onclick="resetPassUser(${u.id})" title="Resetear contraseña">🔄</button>
-          <button class="btn btn-ghost btn-sm" onclick="editarRolesExtra(${u.id})" title="Roles adicionales">🎭</button>
-          ${u.id!==1?`<button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteUser(${u.id})" title="Eliminar">🗑</button>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="resetPassUser(${u.id})" title="Resetear contraseña">🔄 Reset</button>
+          <button class="btn btn-ghost btn-sm" onclick="editarRolesExtra(${u.id})" title="Roles adicionales">🎭 Roles</button>
+          ${u.id!==1?`<button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteUser(${u.id})" title="Eliminar">🗑 Borrar</button>`:''}
         </td>
       </tr>`;
     });
