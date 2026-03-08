@@ -1267,7 +1267,8 @@ async function dbLoadAll() {
     if (Array.isArray(uRes)) {
       USERS = uRes.map(r=>({
         id:r.id, email:r.email, pass:r.pass, nombre:r.nombre,
-        rol:r.rol, rolesExtra:r.roles_extra||[], liderId:r.lider_id||'', mustChangePass:r.must_change_pass
+        rol:r.rol, rolesExtra:r.roles_extra||[], liderId:r.lider_id||'', mustChangePass:r.must_change_pass,
+        _fromDB:true
       }));
       if (USERS.length) nextUserId = Math.max(...USERS.map(u=>u.id)) + 1;
     }
@@ -1392,7 +1393,8 @@ async function dbSaveUsuario(u) {
       try { const d = await r.json(); const row0 = Array.isArray(d)?d[0]:d; if (row0?.id) u.id = row0.id; } catch(e){}
     } else {
       const t = await r.text();
-      showToast('❌ Error guardando usuario: ' + t, 'error');
+      const msg = t.includes('23505') ? 'Este correo ya está registrado' : t;
+      showToast('❌ Error guardando usuario: ' + msg, 'error');
       console.error('dbSaveUsuario error:', t);
     }
   }
