@@ -1343,7 +1343,7 @@ async function dbSavePersona(p) {
 }
 
 async function dbDeletePersona(id) {
-  await sb.from('personas').delete().eq('id', id);
+  await fetch(SUPA_URL + '/rest/v1/personas?id=eq.' + id, { method:'DELETE', headers:SUPA_HEADERS });
 }
 
 async function dbUpdatePersonaField(id, fields) {
@@ -1351,7 +1351,11 @@ async function dbUpdatePersonaField(id, fields) {
   if (fields.asisteCelula !== undefined) mapped.asiste_celula = fields.asisteCelula;
   if (fields.estado !== undefined) mapped.estado = fields.estado;
   if (fields.obs !== undefined) mapped.obs = fields.obs;
-  if (Object.keys(mapped).length) await sb.from('personas').update(mapped).eq('id', id);
+  if (Object.keys(mapped).length) {
+    await fetch(SUPA_URL + '/rest/v1/personas?id=eq.' + id, {
+      method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify(mapped)
+    });
+  }
 }
 
 // --- CARTAS ---
@@ -1362,57 +1366,81 @@ async function dbSaveCarta(c) {
     estado:c.estado||'Pendiente', tipo_carta:c.tipoCarta||'persona'
   };
   if (c._fromDB) {
-    await sb.from('cartas').update(row).eq('id', c.id);
+    await fetch(SUPA_URL + '/rest/v1/cartas?id=eq.' + c.id, {
+      method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify(row)
+    });
   } else {
-    const {data} = await sb.from('cartas').insert(row).then(r=>r);
-    if (data) c.id = data.id;
+    const r = await fetch(SUPA_URL + '/rest/v1/cartas', {
+      method:'POST', headers:SUPA_HEADERS, body:JSON.stringify(row)
+    });
+    if (r.ok) {
+      try { const d = await r.json(); const row0 = Array.isArray(d)?d[0]:d; if (row0?.id) c.id = row0.id; } catch(e){}
+    }
   }
   c._fromDB = true;
 }
 
 async function dbDeleteCarta(id) {
-  await sb.from('cartas').delete().eq('id', id);
+  await fetch(SUPA_URL + '/rest/v1/cartas?id=eq.' + id, { method:'DELETE', headers:SUPA_HEADERS });
 }
 
 // --- USUARIOS ---
 async function dbSaveUsuario(u) {
   const row = {email:u.email, pass:u.pass, nombre:u.nombre, rol:u.rol, roles_extra:u.rolesExtra||[], lider_id:u.liderId||'', must_change_pass:u.mustChangePass};
   if (u._fromDB) {
-    await sb.from('usuarios').update(row).eq('id', u.id);
+    await fetch(SUPA_URL + '/rest/v1/usuarios?id=eq.' + u.id, {
+      method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify(row)
+    });
   } else {
-    const {data} = await sb.from('usuarios').insert(row).then(r=>r);
-    if (data) u.id = data.id;
+    const r = await fetch(SUPA_URL + '/rest/v1/usuarios', {
+      method:'POST', headers:SUPA_HEADERS, body:JSON.stringify(row)
+    });
+    if (r.ok) {
+      try { const d = await r.json(); const row0 = Array.isArray(d)?d[0]:d; if (row0?.id) u.id = row0.id; } catch(e){}
+    }
   }
   u._fromDB = true;
 }
 
 async function dbDeleteUsuario(id) {
-  await sb.from('usuarios').delete().eq('id', id);
+  await fetch(SUPA_URL + '/rest/v1/usuarios?id=eq.' + id, { method:'DELETE', headers:SUPA_HEADERS });
 }
 
 // --- SUPERVISORES ---
 async function dbSaveSupervisor(s) {
   if (s._fromDB) {
-    await sb.from('supervisores').update({nombre:s.nombre, user_id:s.userId}).eq('id', s.id);
+    await fetch(SUPA_URL + '/rest/v1/supervisores?id=eq.' + s.id, {
+      method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify({nombre:s.nombre, user_id:s.userId})
+    });
   } else {
-    const {data} = await sb.from('supervisores').insert({nombre:s.nombre, user_id:s.userId}).then(r=>r);
-    if (data) s.id = data.id;
+    const r = await fetch(SUPA_URL + '/rest/v1/supervisores', {
+      method:'POST', headers:SUPA_HEADERS, body:JSON.stringify({nombre:s.nombre, user_id:s.userId})
+    });
+    if (r.ok) {
+      try { const d = await r.json(); const row0 = Array.isArray(d)?d[0]:d; if (row0?.id) s.id = row0.id; } catch(e){}
+    }
   }
   s._fromDB = true;
   // Upsert grupos
   for (const g of s.grupos) {
     if (g.id) {
-      await sb.from('supervisor_grupos').update({nombre:g.nombre, lideres:g.lideres}).eq('id', g.id);
+      await fetch(SUPA_URL + '/rest/v1/supervisor_grupos?id=eq.' + g.id, {
+        method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify({nombre:g.nombre, lideres:g.lideres})
+      });
     } else {
-      const {data} = await sb.from('supervisor_grupos').insert({supervisor_id:s.id, nombre:g.nombre, lideres:g.lideres}).then(r=>r);
-      if (data) g.id = data.id;
+      const r = await fetch(SUPA_URL + '/rest/v1/supervisor_grupos', {
+        method:'POST', headers:SUPA_HEADERS, body:JSON.stringify({supervisor_id:s.id, nombre:g.nombre, lideres:g.lideres})
+      });
+      if (r.ok) {
+        try { const d = await r.json(); const row0 = Array.isArray(d)?d[0]:d; if (row0?.id) g.id = row0.id; } catch(e){}
+      }
     }
   }
 }
 
 async function dbDeleteSupervisor(id) {
-  await sb.from('supervisor_grupos').delete().eq('supervisor_id', id);
-  await sb.from('supervisores').delete().eq('id', id);
+  await fetch(SUPA_URL + '/rest/v1/supervisor_grupos?supervisor_id=eq.' + id, { method:'DELETE', headers:SUPA_HEADERS });
+  await fetch(SUPA_URL + '/rest/v1/supervisores?id=eq.' + id, { method:'DELETE', headers:SUPA_HEADERS });
 }
 
 // --- Helper: insert directo sin query builder ---
@@ -1531,8 +1559,8 @@ function aplicarNavegacionPorRol(rol) {
 
 // --- OPCIONES ---
 async function dbSyncOpciones(tipo, arr) {
-  await sb.from('opciones').delete().eq('tipo', tipo);
-  if (arr.length) await sb.from('opciones').insert(arr.map(v=>({tipo, valor:v})));
+  await fetch(SUPA_URL + '/rest/v1/opciones?tipo=eq.' + encodeURIComponent(tipo), { method:'DELETE', headers:SUPA_HEADERS });
+  if (arr.length) await fetch(SUPA_URL + '/rest/v1/opciones', { method:'POST', headers:SUPA_HEADERS, body:JSON.stringify(arr.map(v=>({tipo, valor:v}))) });
 }
 
 // --- UI HELPERS ---
@@ -2049,7 +2077,7 @@ async function addOpcion(tipo) {
   if (arr.includes(finalVal)) { showToast('Ya existe esa opción', 'error'); return; }
   arr.push(finalVal);
   // Insert only the new item — much faster than resyncing all
-  await sb.from('opciones').insert({ tipo: dbTipo, valor: finalVal });
+  await fetch(SUPA_URL + '/rest/v1/opciones', { method:'POST', headers:SUPA_HEADERS, body:JSON.stringify({ tipo: dbTipo, valor: finalVal }) });
   input.value = '';
   populateLiderSelects();
   renderAjustes();
@@ -2062,7 +2090,7 @@ async function removeOpcion(tipo, idx) {
   if (!confirm(`¿Eliminar "${nombre}"?`)) return;
   const dbTipo = tipo==='decisiones'?'decision':tipo==='motivos'?'motivo':'lider';
   // Delete by tipo+valor — faster than resync
-  await sb.from('opciones').delete().eq('tipo', dbTipo).eq('valor', nombre);
+  await fetch(SUPA_URL + '/rest/v1/opciones?tipo=eq.' + encodeURIComponent(dbTipo) + '&valor=eq.' + encodeURIComponent(nombre), { method:'DELETE', headers:SUPA_HEADERS });
   arr.splice(idx, 1);
   populateLiderSelects();
   renderAjustes();
@@ -2597,7 +2625,7 @@ async function updateCartaEstado(cartaId, nuevoEstado) {
   const c = CARTAS.find(x => x.id === cartaId);
   if (!c) return;
   c.estado = nuevoEstado;
-  await sb.from('cartas').update({estado: nuevoEstado}).eq('id', cartaId);
+  await fetch(SUPA_URL + '/rest/v1/cartas?id=eq.' + cartaId, { method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify({estado: nuevoEstado}) });
   // Sync persona asisteCelula too
   if (c.personaId) {
     const p = PERSONAS.find(x => x.id === c.personaId);
@@ -3467,7 +3495,7 @@ async function guardarNuevaPass() {
   if (!/[a-z]/.test(p1)) { errEl.textContent='Debe tener al menos una minúscula'; errEl.style.display='block'; return; }
   if (p1 !== p2) { errEl.textContent='Las contraseñas no coinciden'; errEl.style.display='block'; return; }
   // Update in Supabase directly
-  await sb.from('usuarios').update({ pass: p1, must_change_pass: false }).eq('id', currentUser.id);
+  await fetch(SUPA_URL + '/rest/v1/usuarios?id=eq.' + currentUser.id, { method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify({ pass: p1, must_change_pass: false }) });
   currentUser.pass = p1;
   currentUser.mustChangePass = false;
   await logHistorial('password', 'Contraseña cambiada por el usuario en primer acceso');
@@ -3847,7 +3875,7 @@ async function deleteGrupo(supId, gi) {
   if (!s || s.grupos.length <= 1) { alert('Debe haber al menos un grupo'); return; }
   if (!confirm('¿Eliminar este grupo y sus líderes asignados?')) return;
   const grp = s.grupos[gi];
-  if (grp.id) await sb.from('supervisor_grupos').delete().eq('id', grp.id);
+  if (grp.id) await fetch(SUPA_URL + '/rest/v1/supervisor_grupos?id=eq.' + grp.id, { method:'DELETE', headers:SUPA_HEADERS });
   s.grupos.splice(gi, 1);
   renderSupervisoresCfg();
 }
