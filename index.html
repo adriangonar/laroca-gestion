@@ -1380,15 +1380,20 @@ async function dbDeleteCarta(id) {
 async function dbSaveUsuario(u) {
   const row = {email:u.email, pass:u.pass, nombre:u.nombre, rol:u.rol, roles_extra:u.rolesExtra||[], lider_id:u.liderId||'', must_change_pass:u.mustChangePass};
   if (u._fromDB) {
-    await fetch(SUPA_URL + '/rest/v1/usuarios?id=eq.' + u.id, {
+    const r = await fetch(SUPA_URL + '/rest/v1/usuarios?id=eq.' + u.id, {
       method:'PATCH', headers:SUPA_HEADERS, body:JSON.stringify(row)
     });
+    if (!r.ok) { const t = await r.text(); showToast('❌ Error actualizando usuario: ' + t, 'error'); }
   } else {
     const r = await fetch(SUPA_URL + '/rest/v1/usuarios', {
       method:'POST', headers:SUPA_HEADERS, body:JSON.stringify(row)
     });
     if (r.ok) {
       try { const d = await r.json(); const row0 = Array.isArray(d)?d[0]:d; if (row0?.id) u.id = row0.id; } catch(e){}
+    } else {
+      const t = await r.text();
+      showToast('❌ Error guardando usuario: ' + t, 'error');
+      console.error('dbSaveUsuario error:', t);
     }
   }
   u._fromDB = true;
@@ -3715,10 +3720,11 @@ function renderUsuariosPanel() {
 
 function onRolCheck() {
   const checks = Array.from(document.querySelectorAll('input[name="new-usr-rol"]:checked')).map(c => c.value);
+  const rolPrincipal = checks[0] || '';
   const liderWrap = document.getElementById('new-usr-lider-wrap');
   const supWrap   = document.getElementById('new-usr-supervisor-wrap');
-  if (liderWrap) liderWrap.style.display  = checks.includes('lider')      ? 'block' : 'none';
-  if (supWrap)   supWrap.style.display    = checks.includes('supervisor') ? 'block' : 'none';
+  if (liderWrap) liderWrap.style.display  = rolPrincipal === 'lider'      ? 'block' : 'none';
+  if (supWrap)   supWrap.style.display    = rolPrincipal === 'supervisor' ? 'block' : 'none';
 }
 
 async function addUser() {
@@ -3728,7 +3734,11 @@ async function addUser() {
   if (!emailRaw) { alert('Introduce un correo electrónico'); return; }
   if (USERS.find(u => u.email.toLowerCase() === emailRaw)) { alert('Este correo ya existe'); return; }
 
-  const checks = Array.from(document.querySelectorAll('input[name="new-usr-rol"]:checked')).map(c => c.value);
+  const rolOpts  = ['cosecha','lider','supervisor','pastor','analista'];
+  const checks   = rolOpts.filter(r => {
+    const el = document.querySelector(`input[name="new-usr-rol"][value="${r}"]`);
+    return el && el.checked;
+  });
   if (!checks.length) { alert('Selecciona al menos un rol'); return; }
 
   const rolPrincipal = checks[0];
