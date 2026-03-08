@@ -732,7 +732,6 @@ function doLogin() {
             <h2 id="dash-title">Panel Principal</h2>
             <p id="dash-subtitle">Bienvenido al sistema de gestión ministerial</p>
           </div>
-          <button id="btn-sync" onclick="sincronizarDatos()" class="btn btn-ghost btn-sm" style="align-self:center;white-space:nowrap">🔄 Sincronizar</button>
         </div>
         <div class="stats-grid" id="dash-stats"></div>
         <div id="dash-content"></div>
@@ -2219,71 +2218,22 @@ function showPage(name) {
   const navItem = document.querySelector(`[data-page="${name}"]`);
   if (navItem) navItem.classList.add('active');
 
-  // Recargar datos ANTES de renderizar para siempre mostrar datos frescos
+  // Recargar datos frescos en páginas clave — para todos los roles
   const paginasQueRecargan = ['dashboard','personas','mis-personas','global','lideres-stat','trimestral','mis-lideres','mi-informe-sup'];
   if (paginasQueRecargan.includes(name)) {
-    const base = SUPA_URL + '/rest/v1/';
-    const h = SUPA_HEADERS;
-    (async () => {
-      try {
-        const [pRes, cRes] = await Promise.all([
-          fetch(base + 'personas?select=*&order=id', { headers:h, cache:'no-store' }).then(r=>r.json()),
-          fetch(base + 'cartas?select=*&order=id',   { headers:h, cache:'no-store' }).then(r=>r.json()),
-        ]);
-        if (Array.isArray(pRes)) {
-          PERSONAS = pRes.map(r=>({
-            id:r.id, fecha:r.fecha, nombre:r.nombre, apellidos:r.apellidos||'',
-            telefono:r.telefono||'', email:r.email||'', edad:r.edad||0,
-            grupo:r.grupo||'', nacionalidad:r.nacionalidad||'',
-            direccion:r.direccion||'', invitadoPor:r.invitado_por||'',
-            decision:r.decision||'', lider:r.lider||'', motivo:r.motivo||'',
-            obs:r.obs||'', estado:r.estado||'Pendiente', asisteCelula:r.asiste_celula||'Pendiente'
-          }));
-          nextPersonaId = PERSONAS.length ? Math.max(...PERSONAS.map(p=>p.id)) + 1 : 1;
-        }
-        if (Array.isArray(cRes)) {
-          CARTAS = cRes.map(r=>({
-            id:r.id, lider:r.lider, tipo:r.tipo, num:r.num||1, fecha:r.fecha,
-            personaId:r.persona_id||null, personaNombre:r.persona_nombre||'',
-            estado:r.estado||'Pendiente', tipoCarta:r.tipo_carta||'persona', _fromDB:true
-          }));
-          nextCartaId = CARTAS.length ? Math.max(...CARTAS.map(c=>c.id)) + 1 : 1;
-        }
-      } catch(e) {}
-      // Renderizar DESPUÉS de tener los datos
-      if (name==='dashboard') renderDashboard();
-      else if (name==='personas') renderPersonas();
-      else if (name==='mis-personas') renderMisPersonas();
-      else if (name==='global') renderGlobal();
-      else if (name==='lideres-stat') renderLideresStat();
-      else if (name==='trimestral') renderTrimestral();
-      else if (name==='mis-lideres') renderMisLideres();
-      else if (name==='mi-informe-sup') renderMiInformeSup();
-    })();
-    // Render inmediato con datos actuales mientras carga (evita pantalla en blanco)
-    if (name==='dashboard') renderDashboard();
-    else if (name==='personas') renderPersonas();
-    else if (name==='mis-personas') renderMisPersonas();
-    return; // el resto del render lo hace el async de arriba
+    recargarYRenderizar(name);
+    return; // recargarYRenderizar se encarga del render
   }
 
-  // Render on demand
-  if (name==='dashboard') renderDashboard();
-  if (name==='personas') { renderPersonas(); logHistorial('vista','Vistas: lista de personas'); }
+  // Render on demand (páginas que no recargan datos)
   if (name==='nuevo-registro') initNuevoRegistro();
   if (name==='cartas') { renderCartas(); logHistorial('vista','Vistas: cartas/seguimiento'); }
   if (name==='motivos') { renderMotivos(); logHistorial('vista','Vistas: motivos de oración'); }
   if (name==='decisiones') { renderDecisiones(); logHistorial('vista','Vistas: decisiones'); }
-  if (name==='mis-personas') renderMisPersonas();
-  if (name==='global') { renderGlobal(); logHistorial('vista','Vistas: vista global'); }
-  if (name==='lideres-stat') { renderLideresStat(); logHistorial('vista','Vistas: actividad de líderes'); }
   if (name==='ajustes') renderAjustes();
-  if (name==='trimestral') { renderTrimestral(); logHistorial('vista','Vistas: informe trimestral'); }
   if (name==='sala-salvacion') { renderSalaSalvacion(); logHistorial('vista','Vistas: sala de salvación'); }
   if (name==='usuarios') renderUsuarios();
   if (name==='supervisores-cfg') renderSupervisoresCfg();
-  if (name==='mis-lideres') renderMisLideres();
-  if (name==='mi-informe-sup') renderMiInformeSup();
   if (name==='historial') renderHistorial();
   closeSidebar();
 }
@@ -2305,15 +2255,45 @@ function closeSidebar() {
 // ============================================================
 // DASHBOARD
 // ============================================================
-async function sincronizarDatos() {
-  const btn = document.getElementById('btn-sync');
-  if (btn) { btn.textContent = '⏳ Cargando...'; btn.disabled = true; }
-  // Resetear arrays antes de recargar para evitar datos fantasma
-  PERSONAS = []; CARTAS = [];
-  await dbLoadAll();
-  renderDashboard();
-  if (btn) { btn.textContent = '🔄 Sincronizar'; btn.disabled = false; }
-  showToast('✅ Datos sincronizados — ' + PERSONAS.length + ' personas en BD', 'ok');
+async function recargarYRenderizar(name) {
+  try {
+    const base = SUPA_URL + '/rest/v1/';
+    const h = { ...SUPA_HEADERS, cache: 'no-store' };
+    const [pRes, cRes] = await Promise.all([
+      fetch(base + 'personas?select=*&order=id', { headers: h, cache: 'no-store' }).then(r => r.json()),
+      fetch(base + 'cartas?select=*&order=id',   { headers: h, cache: 'no-store' }).then(r => r.json()),
+    ]);
+    if (Array.isArray(pRes)) {
+      PERSONAS = pRes.map(r => ({
+        id:r.id, fecha:r.fecha, nombre:r.nombre, apellidos:r.apellidos||'',
+        telefono:r.telefono||'', email:r.email||'', edad:r.edad||0,
+        grupo:r.grupo||'', nacionalidad:r.nacionalidad||'',
+        direccion:r.direccion||'', invitadoPor:r.invitado_por||'',
+        decision:r.decision||'', lider:r.lider||'', motivo:r.motivo||'',
+        obs:r.obs||'', estado:r.estado||'Pendiente', asisteCelula:r.asiste_celula||'Pendiente'
+      }));
+      nextPersonaId = PERSONAS.length ? Math.max(...PERSONAS.map(p => p.id)) + 1 : 1;
+    }
+    if (Array.isArray(cRes)) {
+      CARTAS = cRes.map(r => ({
+        id:r.id, lider:r.lider, tipo:r.tipo, num:r.num||1, fecha:r.fecha,
+        personaId:r.persona_id||null, personaNombre:r.persona_nombre||'',
+        estado:r.estado||'Pendiente', tipoCarta:r.tipo_carta||'persona', _fromDB:true
+      }));
+      nextCartaId = CARTAS.length ? Math.max(...CARTAS.map(c => c.id)) + 1 : 1;
+    }
+  } catch(e) {}
+
+  // Renderizar con datos frescos
+  if      (name==='dashboard')     renderDashboard();
+  else if (name==='personas')      { renderPersonas(); logHistorial('vista','Vistas: lista de personas'); }
+  else if (name==='mis-personas')  renderMisPersonas();
+  else if (name==='global')        { renderGlobal(); logHistorial('vista','Vistas: vista global'); }
+  else if (name==='lideres-stat')  { renderLideresStat(); logHistorial('vista','Vistas: actividad de líderes'); }
+  else if (name==='trimestral')    { renderTrimestral(); logHistorial('vista','Vistas: informe trimestral'); }
+  else if (name==='mis-lideres')   renderMisLideres();
+  else if (name==='mi-informe-sup') renderMiInformeSup();
+  closeSidebar();
 }
 
 function renderDashboard() {
@@ -2580,7 +2560,7 @@ async function _guardarPersonaCore(nombre, apellidos, lider) {
       '🔔 Nueva persona asignada',
       nueva.nombre + ' ' + nueva.apellidos + ' — ' + nueva.decision
     );
-    showToast('\u2705 Guardado y notificado a ' + liderUser.nombre, 'ok');
+    // notificación enviada — el toast final lo muestra guardarPersona
   } else {
     const disponibles = USERS
       .filter(function(u){ return u.rol==='lider' || (u.rolesExtra||[]).includes('lider'); })
