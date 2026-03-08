@@ -1004,13 +1004,6 @@ function doLogin() {
       <!-- GESTIONAR USUARIOS (Admin) -->
       <div class="page" id="page-usuarios">
         <div class="page-header"><h2>🔐 Gestionar Usuarios</h2><p>Añade y gestiona accesos por rol</p></div>
-        <div class="tabs" id="usr-tabs">
-          <button class="tab active" onclick="switchUsrTab('cosecha')"    id="usr-tab-cosecha">🌾 Cosecha</button>
-          <button class="tab"        onclick="switchUsrTab('lider')"      id="usr-tab-lider">👤 Líderes</button>
-          <button class="tab"        onclick="switchUsrTab('supervisor')" id="usr-tab-supervisor">🧭 Supervisores</button>
-          <button class="tab"        onclick="switchUsrTab('pastor')"     id="usr-tab-pastor">🙏 Pastores</button>
-          <button class="tab"        onclick="switchUsrTab('analista')"   id="usr-tab-analista">🔍 Analistas</button>
-        </div>
         <div id="usr-panel"></div>
       </div>
 
@@ -3566,164 +3559,144 @@ function genPass() {
   return Array.from({length:8}, ()=>chars[Math.floor(Math.random()*chars.length)]).join('');
 }
 
-let _usrTab = 'cosecha';
-function switchUsrTab(rol) {
-  _usrTab = rol;
-  ['cosecha','lider','supervisor','pastor','analista'].forEach(r => {
-    document.getElementById('usr-tab-'+r).classList.toggle('active', r===rol);
-  });
-  renderUsuariosPanel();
-}
-
 function renderUsuarios() {
   renderUsuariosPanel();
 }
 
 function renderUsuariosPanel() {
-  const rol = _usrTab;
-  const lista = USERS.filter(u=>u.rol===rol);
-  const rolLabel = {cosecha:'Cosecha',lider:'Líder',supervisor:'Supervisor',pastor:'Pastor',analista:'Analista'}[rol]||rol;
+  const ROL_LABELS = {cosecha:'🌾 Cosecha',lider:'👤 Líder',supervisor:'🧭 Supervisor',pastor:'🙏 Pastor',analista:'🔍 Analista'};
   const at = String.fromCharCode(64);
 
-  const showLiderCol = rol === 'lider';
-  const showSupCol   = rol === 'supervisor';
+  // Build users table — ALL users grouped by role
+  const roles = ['admin','cosecha','lider','supervisor','pastor','analista'];
+  let allRows = '';
+  roles.forEach(rol => {
+    const lista = USERS.filter(u => u.rol === rol);
+    if (!lista.length) return;
+    lista.forEach(u => {
+      const rolesExtra = (u.rolesExtra||[]).map(r => ROL_LABELS[r]||r).join(', ') || '—';
+      const liderInfo = u.rol==='lider' ? `<br><small style="color:var(--text-light)">${u.liderId||''}</small>` : '';
+      allRows += `<tr>
+        <td><strong>${u.nombre||'—'}</strong>${liderInfo}</td>
+        <td style="font-size:12px">${u.email}</td>
+        <td><span class="badge badge-${u.rol==='admin'?'si':u.rol==='lider'?'pendiente':'seguimiento'}" style="font-size:11px">${ROL_LABELS[u.rol]||u.rol}</span></td>
+        <td style="font-size:11px;color:var(--text-light)">${rolesExtra}</td>
+        <td><code style="background:rgba(201,168,76,0.1);padding:2px 8px;border-radius:4px;font-size:12px">${u.pass}</code></td>
+        <td><span class="badge ${u.mustChangePass?'badge-pendiente':'badge-si'}">${u.mustChangePass?'Pendiente':'Activo'}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick="resetPassUser(${u.id})" title="Resetear contraseña">🔄</button>
+          <button class="btn btn-ghost btn-sm" onclick="editarRolesExtra(${u.id})" title="Roles adicionales">🎭</button>
+          ${u.id!==1?`<button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteUser(${u.id})" title="Eliminar">🗑</button>`:''}
+        </td>
+      </tr>`;
+    });
+  });
+  if (!allRows) allRows = `<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-light)">Sin usuarios creados</td></tr>`;
 
-  const rows = lista.length ? lista.map(u=>`
-    <tr>
-      <td>${u.nombre||'—'}</td>
-      <td style="font-size:12px">${u.email}</td>
-      ${showLiderCol ? `<td style="font-size:12px">${u.liderId||'—'}</td>` : ''}
-      ${showSupCol   ? `<td style="font-size:12px">${SUPERVISORES.find(s=>s.userId===u.id)?.nombre||'—'}</td>` : ''}
-      <td style="font-size:11px">${(u.rolesExtra||[]).length ? (u.rolesExtra||[]).map(r=>({cosecha:'🌾',lider:'👤',supervisor:'🧭',pastor:'🙏',analista:'🔍'}[r]||r)+' '+r).join(', ') : '—'}</td>
-      <td><code style="background:rgba(201,168,76,0.1);padding:2px 8px;border-radius:4px;font-size:12px;letter-spacing:1px">${u.pass}</code></td>
-      <td><span class="badge ${u.mustChangePass?'badge-pendiente':'badge-si'}">${u.mustChangePass?'Cambio pendiente':'Activo'}</span></td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" onclick="resetPassUser(${u.id})" title="Resetear contraseña">🔄</button>
-        <button class="btn btn-ghost btn-sm" onclick="editarRolesExtra(${u.id})" title="Gestionar roles extra">🎭</button>
-        ${u.id!==1?`<button class="btn btn-ghost btn-sm" style="color:var(--red-light)" onclick="deleteUser(${u.id})" title="Eliminar usuario">🗑</button>`:''}
-      </td>
-    </tr>`).join('')
-    : `<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:28px;font-size:13px">Sin usuarios con rol ${rolLabel}</td></tr>`;
-
-  let extraField = '';
-  if (rol === 'lider') {
-    extraField = `
-      <div class="usr-field">
-        <label class="usr-label">Líder asignado</label>
-        <select id="new-usr-lider" class="filter-input usr-input">
-          <option value="">— Seleccionar líder —</option>
-          ${LIDERES.map(l=>`<option value="${l}">${l}</option>`).join('')}
-        </select>
-      </div>`;
-  } else if (rol === 'supervisor') {
-    extraField = `
-      <div class="usr-field">
-        <label class="usr-label">Supervisor asignado</label>
-        <select id="new-usr-supervisor" class="filter-input usr-input">
-          <option value="">— Seleccionar supervisor —</option>
-          ${SUPERVISORES_NOMBRES.map(n=>`<option value="${n}">${n}</option>`).join('')}
-        </select>
-      </div>`;
-  }
+  // Roles checkboxes (all except admin)
+  const rolOpts = ['cosecha','lider','supervisor','pastor','analista'];
+  const checkboxes = rolOpts.map(r => `
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid rgba(201,168,76,0.2);cursor:pointer;user-select:none;background:rgba(201,168,76,0.02)">
+      <input type="checkbox" name="new-usr-rol" value="${r}" onchange="onRolCheck()" style="width:15px;height:15px;accent-color:var(--gold)">
+      <span style="font-size:13px">${ROL_LABELS[r]}</span>
+    </label>`).join('');
 
   document.getElementById('usr-panel').innerHTML = `
     <style>
-      .usr-form { padding: 20px 20px 24px; }
-      .usr-field { margin-bottom: 16px; }
-      .usr-label {
-        display: block;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        color: var(--gold-light);
-        margin-bottom: 7px;
-      }
-      .usr-input {
-        width: 100%;
-        max-width: 380px;
-        display: block;
-      }
-      .usr-hint {
-        font-size: 12px;
-        color: var(--text-light);
-        margin: 0 0 18px;
-        padding: 10px 12px;
-        background: rgba(201,168,76,0.05);
-        border-left: 3px solid rgba(201,168,76,0.3);
-        border-radius: 0 6px 6px 0;
-        max-width: 380px;
-      }
+      .usr-rol-grid { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px }
+      .usr-field { margin-bottom:16px }
+      .usr-label { display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--gold-light);margin-bottom:7px }
+      .usr-input { width:100%;max-width:400px;display:block }
+      #new-usr-lider-wrap, #new-usr-supervisor-wrap { display:none }
     </style>
 
     <div class="card" style="margin-bottom:20px">
-      <div class="card-header">
-        <span class="card-title">Usuarios — ${rolLabel}</span>
-        <span style="font-size:12px;color:var(--text-light)">${lista.length} usuario${lista.length!==1?'s':''}</span>
-      </div>
-      <div class="card-body">
+      <div class="card-header"><span class="card-title">Todos los usuarios</span></div>
+      <div class="card-body" style="overflow-x:auto">
         <table style="width:100%">
           <thead><tr>
-            <th>Nombre</th>
-            <th>Correo</th>
-            ${showLiderCol ? '<th>Líder</th>' : ''}
-            ${showSupCol   ? '<th>Supervisor</th>' : ''}
-            <th>Roles extra</th>
-            <th>Contraseña</th>
-            <th>Estado</th>
-            <th style="width:80px"></th>
+            <th>Nombre</th><th>Correo</th><th>Rol</th><th>Roles extra</th><th>Contraseña</th><th>Estado</th><th style="width:80px"></th>
           </tr></thead>
-          <tbody>${rows}</tbody>
+          <tbody>${allRows}</tbody>
         </table>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">➕ Nuevo usuario ${rolLabel}</span>
-      </div>
-      <div class="usr-form">
+      <div class="card-header"><span class="card-title">➕ Nuevo usuario</span></div>
+      <div style="padding:20px 20px 24px">
         <div class="usr-field">
           <label class="usr-label">Nombre completo</label>
-          <input type="text" id="new-usr-nombre" class="filter-input usr-input"
-            placeholder="Nombre y apellido">
+          <input type="text" id="new-usr-nombre" class="filter-input usr-input" placeholder="Nombre y apellido">
         </div>
         <div class="usr-field">
           <label class="usr-label">Correo electrónico</label>
-          <input type="text" id="new-usr-email" class="filter-input usr-input"
-            placeholder="correo${at}ejemplo.com"
-            autocomplete="off" autocapitalize="off" autocorrect="off">
+          <input type="text" id="new-usr-email" class="filter-input usr-input" placeholder="correo${at}ejemplo.com" autocomplete="off" autocapitalize="off" autocorrect="off">
         </div>
-        ${extraField}
-        <p class="usr-hint">🔑 Se generará una contraseña provisional. El usuario deberá cambiarla en su primer acceso.</p>
-        <button class="btn btn-gold" onclick="addUser('${rol}')">+ Añadir usuario</button>
+        <div class="usr-field">
+          <label class="usr-label">Roles — selecciona uno o más</label>
+          <div class="usr-rol-grid">${checkboxes}</div>
+        </div>
+        <div class="usr-field" id="new-usr-lider-wrap">
+          <label class="usr-label">Líder asignado (para rol Líder)</label>
+          <select id="new-usr-lider" class="filter-input usr-input">
+            <option value="">— Seleccionar líder —</option>
+            ${LIDERES.map(l=>`<option value="${l}">${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="usr-field" id="new-usr-supervisor-wrap">
+          <label class="usr-label">Supervisor asignado (para rol Supervisor)</label>
+          <select id="new-usr-supervisor" class="filter-input usr-input">
+            <option value="">— Seleccionar supervisor —</option>
+            ${SUPERVISORES_NOMBRES.map(n=>`<option value="${n}">${n}</option>`).join('')}
+          </select>
+        </div>
+        <p style="font-size:12px;color:var(--text-light);margin:0 0 18px;padding:10px 12px;background:rgba(201,168,76,0.05);border-left:3px solid rgba(201,168,76,0.3);border-radius:0 6px 6px 0;max-width:400px">
+          🔑 Se generará una contraseña provisional. El usuario deberá cambiarla en su primer acceso.
+        </p>
+        <button class="btn btn-gold" onclick="addUser()">+ Añadir usuario</button>
       </div>
     </div>`;
 }
 
-async function addUser(rol) {
-  const emailRaw = document.getElementById('new-usr-email').value.trim().toLowerCase();
+function onRolCheck() {
+  const checks = Array.from(document.querySelectorAll('input[name="new-usr-rol"]:checked')).map(c => c.value);
+  const liderWrap = document.getElementById('new-usr-lider-wrap');
+  const supWrap   = document.getElementById('new-usr-supervisor-wrap');
+  if (liderWrap) liderWrap.style.display  = checks.includes('lider')      ? 'block' : 'none';
+  if (supWrap)   supWrap.style.display    = checks.includes('supervisor') ? 'block' : 'none';
+}
+
+async function addUser() {
   const nombre   = document.getElementById('new-usr-nombre').value.trim();
-  if (!nombre)    { alert('Introduce el nombre'); return; }
-  if (!emailRaw)  { alert('Introduce un correo electrónico'); return; }
-  if (USERS.find(u=>u.email.toLowerCase()===emailRaw)) { alert('Este correo ya existe'); return; }
+  const emailRaw = document.getElementById('new-usr-email').value.trim().toLowerCase();
+  if (!nombre)   { alert('Introduce el nombre'); return; }
+  if (!emailRaw) { alert('Introduce un correo electrónico'); return; }
+  if (USERS.find(u => u.email.toLowerCase() === emailRaw)) { alert('Este correo ya existe'); return; }
 
-  const pass = genPass();
-  const newUser = { id:nextUserId++, email:emailRaw, pass, nombre, rol, rolesExtra:[], liderId:'', mustChangePass:true };
+  const checks = Array.from(document.querySelectorAll('input[name="new-usr-rol"]:checked')).map(c => c.value);
+  if (!checks.length) { alert('Selecciona al menos un rol'); return; }
 
-  if (rol === 'lider') {
-    const liderId = document.getElementById('new-usr-lider')?.value || '';
+  const rolPrincipal = checks[0];
+  const rolesExtra   = checks.slice(1);
+
+  // Validar líder si el usuario tiene rol líder
+  let liderId = '';
+  if (checks.includes('lider')) {
+    liderId = document.getElementById('new-usr-lider')?.value || '';
     if (!liderId) { alert('Selecciona el líder asignado'); return; }
-    newUser.liderId = liderId;
-    if (!NOTIFS_POR_LIDER[liderId]) NOTIFS_POR_LIDER[liderId] = [];
   }
+
+  const pass    = genPass();
+  const newUser = { id: nextUserId++, email: emailRaw, pass, nombre, rol: rolPrincipal, rolesExtra, liderId, mustChangePass: true };
 
   await dbSaveUsuario(newUser);
   USERS.push(newUser);
-  await logHistorial('nuevo_usuario', `Usuario creado: ${newUser.nombre} (${newUser.email}) — rol: ${rol}`);
+  if (liderId && !NOTIFS_POR_LIDER[liderId]) NOTIFS_POR_LIDER[liderId] = [];
+  await logHistorial('nuevo_usuario', `Usuario creado: ${nombre} (${emailRaw}) — ${rolPrincipal}${rolesExtra.length ? ' + ' + rolesExtra.join(', ') : ''}`);
 
-  // If supervisor, link them to the supervisor panel
-  if (rol === 'supervisor') {
+  // Si incluye supervisor → linkar al panel
+  if (checks.includes('supervisor')) {
     const supNombre = document.getElementById('new-usr-supervisor')?.value || '';
     if (supNombre) {
       const s = SUPERVISORES.find(x => x.nombre === supNombre);
@@ -3731,16 +3704,10 @@ async function addUser(rol) {
     }
   }
 
-  // Clear fields
-  document.getElementById('new-usr-email').value  = '';
-  document.getElementById('new-usr-nombre').value = '';
-  if (document.getElementById('new-usr-lider'))      document.getElementById('new-usr-lider').value = '';
-  if (document.getElementById('new-usr-supervisor')) document.getElementById('new-usr-supervisor').value = '';
-
   renderUsuariosPanel();
   renderQuickAccess();
-  showToast(`✅ Usuario creado — contraseña provisional: ${pass}`, 'ok');
-  alert(`✅ Usuario creado.\n\nContraseña provisional: ${pass}\n\nEl usuario deberá cambiarla al entrar.`);
+  showToast('✅ Usuario creado — contraseña: ' + pass, 'ok');
+  alert('✅ Usuario creado.\n\nContraseña provisional: ' + pass + '\n\nEl usuario deberá cambiarla al entrar.');
 }
 
 function editarRolesExtra(userId) {
