@@ -1227,12 +1227,12 @@ async function dbLoadAll() {
     const base    = SUPA_URL + '/rest/v1/';
 
     const [pRes, cRes, uRes, supRes, grpRes, opRes] = await Promise.all([
-      fetch(base + 'personas?select=*&order=id', { headers }).then(r => r.json()),
-      fetch(base + 'cartas?select=*&order=id',   { headers }).then(r => r.json()),
-      fetch(base + 'usuarios?select=*&order=id',  { headers }).then(r => r.json()),
-      fetch(base + 'supervisores?select=*&order=id', { headers }).then(r => r.json()),
-      fetch(base + 'supervisor_grupos?select=*&order=id', { headers }).then(r => r.json()),
-      fetch(base + 'opciones?select=*&order=id',  { headers }).then(r => r.json()),
+      fetch(base + 'personas?select=*&order=id', { headers, cache:'no-store' }).then(r => r.json()),
+      fetch(base + 'cartas?select=*&order=id',   { headers, cache:'no-store' }).then(r => r.json()),
+      fetch(base + 'usuarios?select=*&order=id',  { headers, cache:'no-store' }).then(r => r.json()),
+      fetch(base + 'supervisores?select=*&order=id', { headers, cache:'no-store' }).then(r => r.json()),
+      fetch(base + 'supervisor_grupos?select=*&order=id', { headers, cache:'no-store' }).then(r => r.json()),
+      fetch(base + 'opciones?select=*&order=id',  { headers, cache:'no-store' }).then(r => r.json()),
     ]);
 
     // Detectar error de RLS / permisos
