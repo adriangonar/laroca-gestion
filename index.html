@@ -767,10 +767,10 @@ function doLogin() {
             </div>
             <div class="form-row">
               <div class="form-group"><label>Apellidos</label><input type="text" id="reg-apellidos" placeholder="Apellidos"></div>
-              <div class="form-group"><label>Teléfono</label><input type="tel" id="reg-telefono" placeholder="600 000 000"></div>
+              <div class="form-group"><label>Teléfono</label><input type="tel" id="reg-telefono" placeholder="600 000 000" inputmode="tel" pattern="[0-9\s\+\-\(\)]*"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Correo electrónico</label><input type="email" id="reg-email" placeholder="correo@ejemplo.com"></div>
+              <div class="form-group"><label>Correo electrónico</label><input type="email" id="reg-email" placeholder="correo@ejemplo.com" inputmode="email" autocapitalize="off" autocorrect="off"></div>
               <div class="form-group"><label>Edad</label><input type="number" id="reg-edad" placeholder="Años"></div>
             </div>
             <div class="form-row">
@@ -2494,6 +2494,10 @@ async function guardarPersona() {
   if (!nombre) { alert('Por favor ingresa el nombre'); return; }
   const lider = document.getElementById('reg-lider').value;
   if (!lider)  { alert('Por favor selecciona un líder'); return; }
+  const telefono = document.getElementById('reg-telefono').value.trim();
+  if (telefono && !/^[\d\s\+\-\(\)]+$/.test(telefono)) { alert('El teléfono solo puede contener números'); return; }
+  const email = document.getElementById('reg-email').value.trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('El correo electrónico no tiene un formato válido'); return; }
   try { await _guardarPersonaCore(nombre, apellidos, lider); } catch(e) { showToast('\u274C Error al guardar: ' + e.message, 'error'); console.error(e); }
 }
 
@@ -4134,6 +4138,7 @@ function buildInformeSupTable(lista) {
   </tr>`).join('')}</tbody></table>`;
 }
 
+function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 // ============================================================
