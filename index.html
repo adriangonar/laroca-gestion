@@ -3639,7 +3639,7 @@ function renderUsuariosPanel() {
         <td><strong>${u.nombre||'—'}</strong>${liderInfo}</td>
         <td style="font-size:12px">${u.email}</td>
         <td><span class="badge badge-${u.rol==='admin'?'si':u.rol==='lider'?'pendiente':'seguimiento'}" style="font-size:11px">${ROL_LABELS[u.rol]||u.rol}</span></td>
-        <td style="font-size:11px;color:var(--gold);cursor:pointer;text-decoration:underline dotted" onclick="editarRolesExtra(${u.id})" title="Clic para editar roles">${rolesExtra}</td>
+        <td style="font-size:11px;color:var(--gold);cursor:pointer;text-decoration:underline dotted" onclick="editarRolesExtra(${u.id})" title="Clic para editar roles">${rolesExtra !== '—' ? rolesExtra : '<span style="color:var(--text-light)">+ añadir</span>'}</td>
         <td><code style="background:rgba(201,168,76,0.1);padding:2px 8px;border-radius:4px;font-size:12px">${u.pass}</code></td>
         <td><span class="badge ${u.mustChangePass?'badge-pendiente':'badge-si'}">${u.mustChangePass?'Pendiente':'Activo'}</span></td>
         <td style="white-space:nowrap">
