@@ -2222,6 +2222,47 @@ function showPage(name) {
   const navItem = document.querySelector(`[data-page="${name}"]`);
   if (navItem) navItem.classList.add('active');
 
+  // Recargar datos silenciosamente en páginas clave para siempre mostrar datos frescos
+  const paginasQueRecargan = ['dashboard','personas','mis-personas','global','lideres-stat','trimestral','mis-lideres','mi-informe-sup'];
+  if (paginasQueRecargan.includes(name)) {
+    PERSONAS = []; CARTAS = [];
+    const base = SUPA_URL + '/rest/v1/';
+    const h = { ...SUPA_HEADERS, cache: 'no-store' };
+    Promise.all([
+      fetch(base + 'personas?select=*&order=id', { headers: h, cache:'no-store' }).then(r=>r.json()),
+      fetch(base + 'cartas?select=*&order=id',   { headers: h, cache:'no-store' }).then(r=>r.json()),
+    ]).then(([pRes, cRes]) => {
+      if (Array.isArray(pRes)) {
+        PERSONAS = pRes.map(r=>({
+          id:r.id, fecha:r.fecha, nombre:r.nombre, apellidos:r.apellidos||'',
+          telefono:r.telefono||'', email:r.email||'', edad:r.edad||0,
+          grupo:r.grupo||'', nacionalidad:r.nacionalidad||'',
+          direccion:r.direccion||'', invitadoPor:r.invitado_por||'',
+          decision:r.decision||'', lider:r.lider||'', motivo:r.motivo||'',
+          obs:r.obs||'', estado:r.estado||'Pendiente', asisteCelula:r.asiste_celula||'Pendiente'
+        }));
+        nextPersonaId = PERSONAS.length ? Math.max(...PERSONAS.map(p=>p.id)) + 1 : 1;
+      }
+      if (Array.isArray(cRes)) {
+        CARTAS = cRes.map(r=>({
+          id:r.id, lider:r.lider, tipo:r.tipo, num:r.num||1, fecha:r.fecha,
+          personaId:r.persona_id||null, personaNombre:r.persona_nombre||'',
+          estado:r.estado||'Pendiente', tipoCarta:r.tipo_carta||'persona', _fromDB:true
+        }));
+        nextCartaId = CARTAS.length ? Math.max(...CARTAS.map(c=>c.id)) + 1 : 1;
+      }
+      // Re-render con datos frescos
+      if (name==='dashboard') renderDashboard();
+      else if (name==='personas') renderPersonas();
+      else if (name==='mis-personas') renderMisPersonas();
+      else if (name==='global') renderGlobal();
+      else if (name==='lideres-stat') renderLideresStat();
+      else if (name==='trimestral') renderTrimestral();
+      else if (name==='mis-lideres') renderMisLideres();
+      else if (name==='mi-informe-sup') renderMiInformeSup();
+    }).catch(()=>{});
+  }
+
   // Render on demand
   if (name==='dashboard') renderDashboard();
   if (name==='personas') { renderPersonas(); logHistorial('vista','Vistas: lista de personas'); }
